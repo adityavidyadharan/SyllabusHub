@@ -1,16 +1,19 @@
-import './App.css'
-import { BrowserRouter, Route, Routes } from 'react-router'
-import Login from './views/Login'
+import "./App.css";
+import { BrowserRouter, Route, Routes } from "react-router";
+import Login from "./views/Login";
+import Home from "./views/Home";
+import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<h1>Home</h1>} />
-      <Route path="/login" element={<Login />} />
-    </Routes>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
