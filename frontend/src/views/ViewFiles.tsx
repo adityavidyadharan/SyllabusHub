@@ -3,14 +3,14 @@ import { createClient } from "@supabase/supabase-js";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "../firebase/firebase";
 
-// ✅ Updated FileData Interface to use uploaded_by_name
+// Updated FileData Interface to use uploaded_by_name
 interface FileData {
   id: string;
   courseid: string;
   subname: string;
   credits: number;
   fileurl: string;
-  uploaded_by_name: string; // ✅ Stores user’s display name
+  uploaded_by_name: string; 
 }
 
 // Initialize Supabase Client
@@ -34,14 +34,14 @@ function ViewFiles() {
     const auth = getAuth(app);
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser(user.displayName || null); // ✅ Use display name
+        setCurrentUser(user.displayName || null); 
       } else {
         setCurrentUser(null);
       }
     });
   }, []);
 
-  // ✅ Fetch files from Supabase (including uploaded_by_name)
+  // Fetch files from Supabase (including uploaded_by_name)
   const fetchFiles = async () => {
     const { data, error } = await supabase
   .from("uploads")
@@ -63,7 +63,7 @@ if (error) {
     }
   };
 
-  // ✅ Apply Filters
+  // Apply Filters
   useEffect(() => {
     const filtered = files.filter((file) => {
       return (
@@ -75,7 +75,7 @@ if (error) {
     setFilteredFiles(filtered);
   }, [courseFilter, subjectFilter, creditsFilter, files]);
 
-  // ✅ Handle File Update (Editing)
+  // Handle File Update (Editing)
   const handleUpdate = async () => {
     if (!editingFile) return;
 
@@ -96,14 +96,14 @@ if (error) {
     }
   };
 
-  // ✅ Handle File Deletion
+  // Handle File Deletion
   const handleDelete = async (file: FileData) => {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
 
-    // ✅ Extract file path from Supabase URL
+    //  Extract file path from Supabase URL
     const filePath = file.fileurl.split("/storage/v1/object/public/")[1];
 
-    // ✅ Remove from Supabase Storage
+    //  Remove from Supabase Storage
     const { error: storageError } = await supabase.storage.from("Course Syllabuses").remove([filePath]);
 
     if (storageError) {
@@ -111,13 +111,13 @@ if (error) {
       return;
     }
 
-    // ✅ Remove from Supabase Database
+    //  Remove from Supabase Database
     const { error: dbError } = await supabase.from("uploads").delete().eq("id", file.id);
 
     if (dbError) {
       console.error("Error deleting file from database:", dbError);
     } else {
-      fetchFiles(); // ✅ Refresh file list
+      fetchFiles(); //  Refresh file list
     }
   };
 
@@ -125,7 +125,7 @@ if (error) {
     <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
       <h2>Uploaded Files</h2>
 
-      {/* ✅ Filters */}
+      {/*  Filters */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
         <input
           type="text"
@@ -150,14 +150,14 @@ if (error) {
         />
       </div>
 
-      {/* ✅ Table */}
+      {/* Table */}
       <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
         <thead>
           <tr style={{ backgroundColor: "#f4f4f4", textAlign: "left" }}>
             <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Course Number</th>
             <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Subject Name</th>
             <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Credits</th>
-            <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Uploaded By</th> {/* ✅ Shows Name */}
+            <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Uploaded By</th> {/*  Shows Name */}
             <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>File</th>
             <th style={{ padding: "10px", borderBottom: "1px solid #ddd" }}>Actions</th>
           </tr>
@@ -169,7 +169,7 @@ if (error) {
                 <td style={{ padding: "10px" }}>{file.courseid}</td>
                 <td style={{ padding: "10px" }}>{file.subname}</td>
                 <td style={{ padding: "10px" }}>{file.credits}</td>
-                <td style={{ padding: "10px" }}>{file.uploaded_by_name || "Unknown"}</td> {/* ✅ Display Name */}
+                <td style={{ padding: "10px" }}>{file.uploaded_by_name || "Unknown"}</td> {/* Display Name */}
                 <td style={{ padding: "10px" }}>
                   <a href={file.fileurl} target="_blank" rel="noopener noreferrer">
                     View File
@@ -199,7 +199,7 @@ if (error) {
         </tbody>
       </table>
 
-      {/* ✅ Edit Form */}
+      {/* Edit Form */}
       {editingFile && (
         <div style={{ marginTop: "20px", padding: "10px", border: "1px solid #ddd" }}>
           <h3>Edit File</h3>

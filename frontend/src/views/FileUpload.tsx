@@ -8,7 +8,7 @@ const supabase = createClient(
     "https://tsbrojrazwcsjqzvnopi.supabase.co", // Replace with your Supabase URL
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw" // Replace with your Supabase API Key
   );
-  
+
 function FileUpload() {
   const [courseNumber, setCourseNumber] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -74,8 +74,8 @@ function FileUpload() {
           subname: subjectName,
           credits: credits,
           fileurl: filePublicURL,
-          uploaded_by_name: userName, // ✅ Store user's display name
-          uploaded_by_email: userEmail, // ✅ Store user's email
+          uploaded_by_name: userName, 
+          uploaded_by_email: userEmail, 
         },
       ]);
 
