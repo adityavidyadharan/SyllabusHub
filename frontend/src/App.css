@@ -1,42 +1,45 @@
-#root {
-  /* max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem; */
-  text-align: center;
-}
-/* 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Georgia Tech Themed Navbar */
+.navbar {
+  background-color: #B3A369; /* Georgia Tech Gold */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50px; /* Consistent navbar height */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Navigation List */
+.nav-list {
+  list-style: none;
+  display: flex; /* Horizontal navigation */
+  gap: 0px; /* No extra spacing to keep it aligned */
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Default Link Styles - Full Tab Clickable */
+.nav-item {
+  height: 100%; /* Full height of navbar */
+  display: flex;
+  align-items: center;
 }
 
-.card {
-  padding: 2em;
+/* Tab Button Styling */
+.nav-link {
+  text-decoration: none;
+  color: black; /* Default text color */
+  font-weight: bold;
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%; /* Ensures full navbar height */
+  width: 150px; /* Equal tab width */
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
-.read-the-docs {
-  color: #888;
-} */
+/* Active (Selected) Tab */
+.nav-link.active,
+.nav-link:hover {
+  background-color: #003057; /* Georgia Tech Blue */
+  color: white !important; /* Text remains white */
+}
