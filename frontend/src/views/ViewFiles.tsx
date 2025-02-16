@@ -176,13 +176,19 @@ if (error) {
                   </a>
                 </td>
                 <td style={{ padding: "10px" }}>
-                  {currentUser === file.uploaded_by_name && (
-                    <>
-                      <button onClick={() => setEditingFile(file)} style={{ marginRight: "5px" }}>Edit</button>
-                      <button onClick={() => handleDelete(file)} style={{ backgroundColor: "red", color: "white" }}>Delete</button>
-                    </>
-                  )}
-                </td>
+                    {currentUser === file.uploaded_by_name ? (
+                        <>
+                        <button onClick={() => setEditingFile(file)} style={{ marginRight: "5px" }}>Edit</button>
+                        <button onClick={() => handleDelete(file)} style={{ backgroundColor: "red", color: "white" }}>Delete</button>
+                        </>
+                    ) : (
+                        <>
+                        <button disabled style={{ backgroundColor: "#ccc", color: "#666", cursor: "not-allowed", marginRight: "5px" }}>Edit</button>
+                        <button disabled style={{ backgroundColor: "#ccc", color: "#666", cursor: "not-allowed" }}>Delete</button>
+                        </>
+                    )}
+                    </td>
+
               </tr>
             ))
           ) : (
