@@ -1,9 +1,10 @@
 import "./App.css";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Route, Routes } from "react-router-dom"; // ✅ Correct Import
 import Login from "./views/Login";
 import Home from "./views/Home";
 import Navbar from "./components/Navbar";
-import FileUpload from "./views/FileUpload";  // Import FileUpload
+import FileUpload from "./views/FileUpload";  
+import ViewFiles from "./views/ViewFiles";  // ✅ Import ViewFiles
 
 function App() {
   return (
@@ -12,7 +13,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/upload" element={<FileUpload />} /> {/* Add this line */}
+        <Route path="/upload" element={<FileUpload />} />
+        <Route path="/files" element={<ViewFiles />} /> {/* ✅ Add ViewFiles Route */}
       </Routes>
     </BrowserRouter>
   );

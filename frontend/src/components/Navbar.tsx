@@ -31,6 +31,14 @@ function Navbar() {
             File Upload
           </Link>
         </li>
+        <li className="nav-item">
+          <Link 
+            to="/files" 
+            className={`nav-link ${location.pathname === "/files" ? "active" : ""}`}
+          >
+            View Files
+          </Link>
+        </li>
       </ul>
     </nav>
   );

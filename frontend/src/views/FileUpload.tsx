@@ -1,4 +1,11 @@
 import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase Client
+const supabase = createClient(
+    "https://tsbrojrazwcsjqzvnopi.supabase.co", 
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw" // Replace with your Supabase API Key
+  );
 
 function FileUpload() {
   const [courseNumber, setCourseNumber] = useState("");
@@ -7,6 +14,7 @@ function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [fileURL, setFileURL] = useState("");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -25,30 +33,42 @@ function FileUpload() {
     setUploading(true);
     setMessage("");
 
-    // Prepare Form Data
-    const formData = new FormData();
-    formData.append("courseNumber", courseNumber);
-    formData.append("subjectName", subjectName);
-    formData.append("credits", credits);
-    formData.append("file", file);
+
+    const filePath = `course_syllabuses/${Date.now()}-${file.name}`;
 
     try {
-      const response = await fetch("http://localhost:5000/upload", {
-        method: "POST",
-        body: formData,
-      });
 
-      const result = await response.json();
+      const { data, error } = await supabase.storage
+        .from("Course Syllabuses")
+        .upload(filePath, file);
 
-      if (response.ok) {
-        setMessage("File uploaded successfully!");
-        setCourseNumber("");
-        setSubjectName("");
-        setCredits("");
-        setFile(null);
-      } else {
-        setMessage(result.error || "File upload failed.");
+      if (error) {
+        throw error;
       }
+
+      
+      const filePublicURL = `https://tsbrojrazwcsjqzvnopi.supabase.co/storage/v1/object/public/Course Syllabuses/${filePath}`;
+
+      
+      const { error: dbError } = await supabase.from("uploads").insert([
+        {
+          courseid: courseNumber,
+          subname: subjectName,
+          credits: credits,
+          fileurl: filePublicURL,
+        },
+      ]);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      setMessage("File uploaded successfully!");
+      setFileURL(filePublicURL);
+      setCourseNumber("");
+      setSubjectName("");
+      setCredits("");
+      setFile(null);
     } catch (error) {
       console.error("Error uploading file:", error);
       setMessage("Error uploading file. Please try again.");
@@ -89,7 +109,7 @@ function FileUpload() {
           />
         </div>
         <div>
-          <label>Upload File (PDF or DOCX123):</label>
+          <label>Upload File (PDF or DOCX):</label>
           <input type="file" accept=".pdf,.docx" onChange={handleFileChange} required />
         </div>
         <button type="submit" disabled={uploading}>
@@ -97,6 +117,11 @@ function FileUpload() {
         </button>
       </form>
       {message && <p>{message}</p>}
+      {fileURL && (
+        <p>
+          File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer">{fileURL}</a>
+        </p>
+      )}
     </div>
   );
 }
