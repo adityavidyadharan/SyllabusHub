@@ -48,6 +48,7 @@ const uiConfig = {
               body: JSON.stringify({
                 user_id: authResult.user?.uid,
                 email: authResult.user?.email,
+                name: authResult.user?.displayName,
               })
             });
           // }

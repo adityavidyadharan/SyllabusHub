@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from firebase_admin import auth
 from loguru import logger
 import json
+from backend.supabase import supabase
 
 users = Blueprint('users', __name__)
 
@@ -26,6 +27,7 @@ def new_user():
     data = request.json
     uid = data.get('user_id')
     email = data.get('email')
+    name = data.get('name')
     # TODO determine user type (student, teacher)
     # for now, use local JSON
     role = ""
@@ -34,6 +36,20 @@ def new_user():
         role = mapping.get(email, "student")
     logger.debug(f"Setting role {role} for user {uid} ({email})")
     set_user_role(uid, role)
+    if role == "professor":
+        # look for existing professor
+        professors = supabase.table("professors").select("*").eq("firebase_id", uid).execute()
+        print(professors)
+        if professors.count != None and professors.count > 0:
+            logger.info(f"Professor {uid} already exists")
+            return jsonify(user_to_dict(auth.get_user(uid))), 200
+        # insert new professor
+        logger.info(f"Inserting new professor {uid}")
+        supabase.table("professors").insert({
+            "firebase_id": uid,
+            "email": email,
+            "name": name,
+        }).execute()
     user = auth.get_user(uid)
     return jsonify(user_to_dict(user)), 200
 

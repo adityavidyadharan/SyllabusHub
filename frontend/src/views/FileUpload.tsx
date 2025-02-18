@@ -1,70 +1,117 @@
 import { useState, useEffect } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router";
-import { FileData } from "../types/FileTypes";
 import firebase from "firebase/compat/app";
 import { supabase } from "../clients/supabase";
+import { Database, Tables } from "../types/db";
 
 function FileUpload() {
+  const [courseId, setCourseId] = useState("");
   const [courseNumber, setCourseNumber] = useState("");
-  const [subjectName, setSubjectName] = useState("");
-  const [credits, setCredits] = useState("");
-  const [semester, setSemester] = useState("");
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [courseSubject, setCourseSubject] = useState("");
+  const [courseName, setCourseName] = useState("");
+  const [semesterYear, setSemesterYear] = useState("");
+  const [semesterSeason, setSemesterSeason] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [fileURL, setFileURL] = useState("");
-  const [fileID, setFileID] = useState("");
+  const [fileID, setFileID] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [isEdit, setIsEdit] = useState(false);
+
+  const [courseSubjects, setCourseSubjects] = useState<string[]>([]);
+  const [courseNumbers, setCourseNumbers] = useState<Record<number, number>>({});
   const location = useLocation();
   const navigate = useNavigate();
 
   // Get the current year for validation
   const currentYear = new Date().getFullYear();
-  
-  // Valid semester options
-  const validSemesters = ["Spring", "Summer", "Fall"];
 
-  // Generate array of years for the dropdown (from 1900 to current year)
-  // Generate array of years from 1900 up to 2 years into the future
-const yearOptions = Array.from(
-  { length: (currentYear + 2) - 1899 },
-  (_, i) => currentYear + 2 - i
-);
+  const auth = firebase.auth();
 
-  const existingFile = location.state?.file as FileData || null;
+  const existingFile = location.state?.file as Tables<"uploads"> || null;
+
   useEffect(() => {
     if (existingFile) {
-      setCourseNumber(existingFile.courseid);
+      setSemesterSeason(existingFile.semester);
+      setSemesterYear(existingFile.year.toString());
+      async function getCourseInfo() {
+        const course = await supabase.from("courses").select("*").eq("id", existingFile.course_id).single();
+        setCourseNumber(course.data?.course_number?.toString() || "");
+        setCourseSubject(course.data?.course_subject || "");
+        setCourseName(course.data?.name || "");
+      }
+      getCourseInfo();
       setFileID(existingFile.id);
-      setSubjectName(existingFile.subname);
-      setCredits(existingFile.credits.toString());
-      setFileURL(existingFile.fileurl);
-      // Set semester and year if they exist in the existingFile
-      if (existingFile.semester) setSemester(existingFile.semester);
-      if (existingFile.year) setYear(existingFile.year);
+      setFileURL(existingFile.fileurl || "");
       setIsEdit(true);
     }
   }, [existingFile]);
 
-  const auth = firebase.auth();
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserEmail(user.email);
         setUserName(user.displayName || "Unknown User");
+        const data = await supabase
+          .from("professors")
+          .select("*")
+          .eq("firebase_id", user.uid)
+          .single();
+        if (data.data && data.data.id) {
+          setUserId(data.data?.id);
+        } else {
+          console.error("Professor not found in database.");
+        }
       } else {
         setUserEmail(null);
         setUserName(null);
+        setUserId(null);
       }
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5001/courses/subjects")
+      .then((response) => response.json())
+      .then((data) => setCourseSubjects(data));
+  }, []);
+
+  useEffect(() => {
+    fetch(`http://127.0.0.1:5001/courses/numbers?subject=${courseSubject}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setCourseNumbers(data);
+      });
+  }, [courseSubject]);
+
+  useEffect(() => {
+    if (!courseNumber || !courseSubject) {
+      setCourseName("");
+      return;
+    }
+    fetch(`http://127.0.0.1:5001/courses/details/${courseSubject}/${courseNumber}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setCourseName(data.name);
+      });
+  }, [courseNumber, courseSubject]);
+
+  const clearForm = () => {
+    setCourseName("");
+    setCourseSubject("");
+    setCourseId("");
+    setCourseNumber("");
+    setSemesterYear("");
+    setSemesterSeason("");
+    setFile(null);
+    setMessage("");
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -83,7 +130,7 @@ const yearOptions = Array.from(
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!userEmail) {
+    if (!userEmail || !userId) {
       setMessage("You must be logged in to upload files.");
       return;
     }
@@ -92,11 +139,11 @@ const yearOptions = Array.from(
       if (isEdit) {
         setUploading(true);
         const updateData = {
-          courseid: courseNumber,
-          subname: subjectName,
-          credits: credits,
-          semester: semester,
-          year: year
+          crn: null,
+          semester: semesterSeason,
+          year: parseInt(semesterYear),
+          course_id: parseInt(courseNumber),
+          professor_id: userId,
         };
 
         const { error: updateError } = await supabase
@@ -142,17 +189,14 @@ const yearOptions = Array.from(
       if (error) throw error;
 
       const filePublicURL = `https://tsbrojrazwcsjqzvnopi.supabase.co/storage/v1/object/public/Course Syllabuses/${filePath}`;
-
-      const { error: dbError } = await supabase.from("uploads").insert([
+      const { error: dbError } = await supabase.from("uploads").insert<Database['public']['Tables']['uploads']['Insert']>([
         {
-          courseid: courseNumber,
-          subname: subjectName,
-          credits: credits,
-          semester: semester,
-          year: year,
+          crn: null,
           fileurl: filePublicURL,
-          uploaded_by_name: userName,
-          uploaded_by_email: userEmail,
+          semester: semesterSeason,
+          year: parseInt(semesterYear),
+          course_id: parseInt(courseId),
+          professor_id: userId,
         },
       ]);
 
@@ -160,14 +204,13 @@ const yearOptions = Array.from(
 
       setMessage("File uploaded successfully!");
       setFileURL(filePublicURL);
-      setCourseNumber("");
-      setSubjectName("");
-      setCredits("");
-      setSemester("");
-      setYear(currentYear);
-      setFile(null);
+      clearForm();
     } catch (error) {
       console.error("Error uploading file:", error);
+      // delete file from storage if upload fails
+      await supabase.storage
+        .from("Course Syllabuses")
+        .remove([filePath]);
       setMessage("Error uploading file. Please try again.");
     } finally {
       setUploading(false);
@@ -187,60 +230,49 @@ const yearOptions = Array.from(
       {message && <Alert variant="info">{message}</Alert>}
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
-          <Form.Label>Course Number</Form.Label>
-          <Form.Control
-            type="text"
-            value={courseNumber}
-            onChange={(e) => setCourseNumber(e.target.value)}
-            required
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Label>Subject Name</Form.Label>
-          <Form.Control
-            type="text"
-            value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
-            required
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Label>Number of Credits</Form.Label>
-          <Form.Control
-            type="number"
-            value={credits}
-            onChange={(e) => setCredits(e.target.value)}
-            required
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Label>Semester</Form.Label>
-          <Form.Select
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            required
-          >
-            <option value="">Select Semester</option>
-            {validSemesters.map((sem) => (
-              <option key={sem} value={sem}>
-                {sem}
+          <Form.Label>Course Subject</Form.Label>
+          <Form.Select value={courseSubject} onChange={(e) => setCourseSubject(e.target.value)} required>
+            <option value="">Select a subject</option>
+            {courseSubjects.map((subject) => (
+              <option key={subject} value={subject}>
+                {subject}
               </option>
             ))}
           </Form.Select>
         </Form.Group>
         <Form.Group className="mb-3">
-          <Form.Label>Year</Form.Label>
-          <Form.Select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            required
-          >
-            <option value="">Select Year</option>
-            {yearOptions.map((yr) => (
-              <option key={yr} value={yr}>
-                {yr}
+          <Form.Label>Course Number</Form.Label>
+          <Form.Select value={courseId} onChange={(e) => {
+            setCourseNumber(courseNumbers[e.target.value as unknown as number].toString());
+            setCourseId(e.target.value);
+          }} required disabled={!courseSubject}>
+            <option value="">Select a number</option>
+            {Object.entries(courseNumbers).map(([id, course_number]) => (
+              <option key={id} value={id}>
+                {course_number}
               </option>
             ))}
+          </Form.Select>
+        </Form.Group>
+        <Alert variant={courseSubject && courseNumber ? "success" : "secondary"}>
+          Selected Course: {courseSubject} {courseNumber} - {courseName}
+        </Alert>
+        <Form.Group className="mb-3">
+          <Form.Label>Semester Year</Form.Label>
+          <Form.Control
+            type="number"
+            value={semesterYear}
+            onChange={(e) => setSemesterYear(e.target.value)}
+            required
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Semester Season</Form.Label>
+          <Form.Select value={semesterSeason} onChange={(e) => setSemesterSeason(e.target.value)} required>
+            <option value="">Select a season</option>
+            <option value="Spring">Spring</option>
+            <option value="Summer">Summer</option>
+            <option value="Fall">Fall</option>
           </Form.Select>
         </Form.Group>
         {!isEdit && (

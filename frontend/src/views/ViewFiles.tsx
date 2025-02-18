@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   Table,
   Form,
@@ -13,16 +13,16 @@ import {
   Modal
 } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router";
-import { FileData } from "../types/FileTypes";
 import firebase from "firebase/compat/app";
 import { supabase } from "../clients/supabase";
+import { UserUploadedFile } from "../types/relations";
 
 function ViewFiles() {
-  const [files, setFiles] = useState<FileData[]>([]);
-  const [filteredFiles, setFilteredFiles] = useState<FileData[]>([]);
-  const [courseFilter, setCourseFilter] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("");
-  const [creditsFilter, setCreditsFilter] = useState("");
+  const [files, setFiles] = useState<UserUploadedFile[]>([]);
+  const [filteredFiles, setFilteredFiles] = useState<UserUploadedFile[]>([]);
+  const [courseNumberFilter, setCourseNumberFilter] = useState("");
+  const [courseSubjectFilter, setCourseSubjectFilter] = useState("");
+  const [courseNameFilter, setCourseNameFilter] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -35,7 +35,7 @@ function ViewFiles() {
   });
   // Add state for delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<FileData | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<UserUploadedFile | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,7 +46,7 @@ function ViewFiles() {
     const auth = firebase.auth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser(user.email || null);
+        setCurrentUser(user.uid);
       } else {
         setCurrentUser(null);
       }
@@ -72,7 +72,7 @@ function ViewFiles() {
       // Clear the location state after showing the alert
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, navigate]);
+  }, [location, navigate]); 
 
   // Helper function to show alert
   const showAlert = (message: string, variant: string) => {
@@ -89,9 +89,9 @@ function ViewFiles() {
   };
 
   const resetFilters = () => {
-    setCourseFilter("");
-    setSubjectFilter("");
-    setCreditsFilter("");
+    setCourseNumberFilter("");
+    setCourseSubjectFilter("");
+    setCourseNameFilter("");
     setSemesterFilter("");
     setYearFilter("");
   };
@@ -100,16 +100,16 @@ function ViewFiles() {
     if (!currentUser) return; // Ensure user is logged in
   
     try {
+      if (!currentUser) return;
       setLoading(true);
-  
       const { data, error } = await supabase
         .from("uploads")
-        .select("*")
-        .eq("uploaded_by_email", currentUser); // Filter files by user email
-  
+        .select("id, semester, year, fileurl, courses(course_number, course_subject, name), professors(name, firebase_id)")
+        .eq("professors.firebase_id", currentUser);
       if (error) throw error;
-  
-      setFiles(data || []);
+      if (!data) return;
+
+      setFiles(data);
       setFilteredFiles(data || []);
       setLoading(false);
     } catch (error) {
@@ -119,7 +119,7 @@ function ViewFiles() {
   };
   
 
-  const handleEdit = (file: FileData) => {
+  const handleEdit = (file: UserUploadedFile) => {
     // Navigate to the upload page with the file data for editing
     navigate("/upload", { 
       state: { 
@@ -131,7 +131,7 @@ function ViewFiles() {
   };
 
   // Open delete confirmation modal
-  const confirmDelete = (file: FileData) => {
+  const confirmDelete = (file: UserUploadedFile) => {
     setFileToDelete(file);
     setShowDeleteModal(true);
   };
@@ -173,21 +173,21 @@ function ViewFiles() {
   useEffect(() => {
     let filtered = [...files];
     
-    if (courseFilter) {
+    if (courseNumberFilter) {
       filtered = filtered.filter(file => 
-        file.courseid.toLowerCase().includes(courseFilter.toLowerCase())
+        file.courses.course_number.toString().includes(courseNumberFilter)
       );
     }
     
-    if (subjectFilter) {
+    if (courseSubjectFilter) {
       filtered = filtered.filter(file => 
-        file.subname.toLowerCase().includes(subjectFilter.toLowerCase())
+        file.courses.course_subject.toLowerCase().includes(courseSubjectFilter.toLowerCase())
       );
     }
-    
-    if (creditsFilter) {
+
+    if (courseNameFilter) {
       filtered = filtered.filter(file => 
-        file.credits.toString() === creditsFilter
+        file.courses.name.toLowerCase().includes(courseNameFilter.toLowerCase())
       );
     }
     
@@ -199,12 +199,12 @@ function ViewFiles() {
     
     if (yearFilter) {
       filtered = filtered.filter(file => 
-        file.year === yearFilter
+        file.year === parseInt(yearFilter)
       );
     }
     
     setFilteredFiles(filtered);
-  }, [files, courseFilter, subjectFilter, creditsFilter, semesterFilter, yearFilter]);
+  }, [files, courseNumberFilter, courseSubjectFilter, courseNameFilter, semesterFilter, yearFilter]);
 
   return (
     <Container className="mt-4">
@@ -228,26 +228,26 @@ function ViewFiles() {
             <Row>
               <Col md={4} className="mb-2">
                 <Form.Control
-                  type="text"
-                  placeholder="Filter by Course Number"
-                  value={courseFilter}
-                  onChange={(e) => setCourseFilter(e.target.value)}
-                />
-              </Col>
-              <Col md={4} className="mb-2">
-                <Form.Control
-                  type="text"
-                  placeholder="Filter by Subject Name"
-                  value={subjectFilter}
-                  onChange={(e) => setSubjectFilter(e.target.value)}
-                />
-              </Col>
-              <Col md={4} className="mb-2">
-                <Form.Control
                   type="number"
-                  placeholder="Filter by Credits"
-                  value={creditsFilter}
-                  onChange={(e) => setCreditsFilter(e.target.value)}
+                  placeholder="Filter by Course Number"
+                  value={courseNumberFilter}
+                  onChange={(e) => setCourseNumberFilter(e.target.value)}
+                />
+              </Col>
+              <Col md={4} className="mb-2">
+                <Form.Control
+                  type="text"
+                  placeholder="Filter by Course Subject"
+                  value={courseSubjectFilter}
+                  onChange={(e) => setCourseSubjectFilter(e.target.value)}
+                />
+              </Col>
+              <Col md={4} className="mb-2">
+                <Form.Control
+                  type="text"
+                  placeholder="Filter by Course name"
+                  value={courseNameFilter}
+                  onChange={(e) => setCourseNameFilter(e.target.value)}
                 />
               </Col>
               <Col md={6} className="mb-2">
@@ -292,23 +292,22 @@ function ViewFiles() {
         <Table striped bordered hover>
           <thead>
             <tr>
+              <th>Course Name</th>
               <th>Course Number</th>
-              <th>Subject Name</th>
-              <th>Credits</th>
+              <th>Course Subject</th>
               <th>Semester</th>
               <th>Year</th>
               <th>Actions</th>
               <th>File</th>
-              <th>Uploaded By</th>
             </tr>
           </thead>
           <tbody>
             {filteredFiles.length > 0 ? (
               filteredFiles.map((file) => (
                 <tr key={file.id}>
-                  <td>{file.courseid}</td>
-                  <td>{file.subname}</td>
-                  <td>{file.credits}</td>
+                  <td>{file.courses.name}</td>
+                  <td>{file.courses.course_number}</td>
+                  <td>{file.courses.course_subject}</td>
                   <td>{file.semester || "N/A"}</td>
                   <td>{file.year || "N/A"}</td>
                   <td>
@@ -322,7 +321,6 @@ function ViewFiles() {
                   <td>
                     <a href={file.fileurl} target="_blank" rel="noopener noreferrer">View File</a>
                   </td>
-                  <td>{file.uploaded_by_name || "Unknown"}</td>
                 </tr>
               ))
             ) : (
