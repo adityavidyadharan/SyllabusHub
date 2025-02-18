@@ -23,13 +23,25 @@ export default function LoginDropdown() {
 
     
     return (
-        // Person logo and name as a dropdown
-        <NavDropdown title={<span><Person /> {user}</span>}>
-            <NavDropdown.Item as={Link} to="/login">
-                {loggedIn ? 
-                <Button variant="link" onClick={() => firebase.auth().signOut()}>Sign Out</Button> :
-                <Link to="/login">Login</Link>}
-            </NavDropdown.Item>
+        <NavDropdown title={<span><Person /> {user || "Guest"}</span>}>
+            {/* Show Profile and Sign Out only if logged in */}
+            {loggedIn ? (
+                <>
+                    <NavDropdown.Item as={Link} to="/login">
+                        Profile
+                    </NavDropdown.Item>
+                    <NavDropdown.Item>
+                        <Button variant="link" onClick={() => firebase.auth().signOut()}>
+                            Sign Out
+                        </Button>
+                    </NavDropdown.Item>
+                </>
+            ) : (
+                /* Show Login only if not logged in */
+                <NavDropdown.Item as={Link} to="/login">
+                    Login
+                </NavDropdown.Item>
+            )}
         </NavDropdown>
     )
 }
