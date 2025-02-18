@@ -1,9 +1,35 @@
 import { Navbar as BNavbar, Container, Nav } from "react-bootstrap";
 import { Link } from "react-router";
 import LoginDropdown from "./LoginDropdown";
+import firebase from "firebase/compat/app";
+import { useState, useEffect } from "react";
 
 function Navbar() {
   // const location = useLocation(); // Get the current route
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [isProfessor, setIsProfessor] = useState<boolean>(false);
+  
+  useEffect(() => {
+      firebase.auth().onAuthStateChanged(user => {
+          setLoggedIn(!!user);
+          if (user) {
+              user.getIdTokenResult().then(idTokenResult => {
+                console.log(idTokenResult.claims.role);
+                  if (idTokenResult.claims.role === "professor") {
+                      setIsProfessor(true);
+                  } else {
+                      setIsProfessor(false);
+                  }
+              });
+          }
+      });
+    }, []);
+
+  useEffect(() => {
+      firebase.auth().onAuthStateChanged(user => {
+          setLoggedIn(!!user);
+      });
+  }, []);
 
   return (
     <BNavbar bg="primary" expand="lg">
@@ -15,11 +41,20 @@ function Navbar() {
               Home
             </Nav.Link>
           </Nav>
-          <Nav className="me-auto">
-            <Nav.Link as={Link} to="/upload">
-              File Upload
-            </Nav.Link>
-          </Nav>
+          {!loggedIn && (
+            <Nav className="me-auto">
+              <Nav.Link as={Link} to="/login">
+                Login
+              </Nav.Link>
+            </Nav>
+          )}
+          {isProfessor && (
+            <Nav className="me-auto">
+              <Nav.Link as={Link} to="/upload">
+                File Upload
+              </Nav.Link>
+            </Nav>
+          )}
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/files">
               View Files

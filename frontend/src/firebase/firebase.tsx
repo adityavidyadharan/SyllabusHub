@@ -37,7 +37,7 @@ const uiConfig = {
     ],
     callbacks: {
       signInSuccessWithAuthResult: (authResult: firebase.auth.UserCredential) => {
-          if (authResult.additionalUserInfo?.isNewUser) {
+          // if (authResult.additionalUserInfo?.isNewUser) {
             fetch('http://127.0.0.1:5001/users/new', {
               method: 'POST',
               headers: {
@@ -48,7 +48,7 @@ const uiConfig = {
                 email: authResult.user?.email,
               })
             });
-          }
+          // }
       }
     }
   };
