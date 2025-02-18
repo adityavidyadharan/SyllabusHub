@@ -44,6 +44,47 @@ function ViewFiles() {
     navigate("/upload", { state: { file } });
   }
 
+  const handleDelete = async (file: FileData) => {
+    if (!window.confirm("Are you sure you want to delete this file?")) return;
+
+    try {
+      // Check Firebase authentication
+      const auth = getAuth(app);
+      const user = auth.currentUser;
+
+      if (!user || !user.displayName) {
+        alert("You must be logged in to delete files.");
+        return;
+      }
+
+      if (user.displayName !== file.uploaded_by_name) {
+        alert("You can only delete files that you uploaded.");
+        return;
+      }
+
+      const filePath = file.fileurl.split("/storage/v1/object/public/")[1];
+
+      const { error: storageError } = await supabase.storage
+        .from("Course Syllabuses")
+        .remove([filePath]);
+
+      if (storageError) throw storageError;
+
+      const { error: dbError } = await supabase
+        .from("uploads")
+        .delete()
+        .eq("id", file.id);
+
+      if (dbError) throw dbError;
+
+      await fetchFiles();
+      alert("File deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      alert("Failed to delete file. Please try again.");
+    }
+  };
+
   const fetchFiles = async () => {
     try {
       const { data, error } = await supabase
