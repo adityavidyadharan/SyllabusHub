@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "../firebase/firebase"; // Import Firebase
+import { app } from "../firebase/firebase";
+import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
+import { useLocation, useNavigate } from "react-router";
+import { FileData } from "../types/FileTypes";
 
 // Initialize Supabase Client
 const supabase = createClient(
-    "https://tsbrojrazwcsjqzvnopi.supabase.co", // Replace with your Supabase URL
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw" // Replace with your Supabase API Key
-  );
-  
+  "https://tsbrojrazwcsjqzvnopi.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw"
+);
+
 function FileUpload() {
   const [courseNumber, setCourseNumber] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -17,8 +20,24 @@ function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [fileURL, setFileURL] = useState("");
+  const [fileID, setFileID] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isEdit, setIsEdit] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const existingFile = location.state?.file as FileData || null;
+  useEffect(() => {
+    if (existingFile) {
+      setCourseNumber(existingFile.courseid);
+      setFileID(existingFile.id);
+      setSubjectName(existingFile.subname);
+      setCredits(existingFile.credits.toString());
+      setFileURL(existingFile.fileurl);
+      setIsEdit(true);
+    }
+  }, [existingFile]);
 
   const auth = getAuth(app);
 
@@ -44,13 +63,39 @@ function FileUpload() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!file) {
-      setMessage("Please select a file to upload.");
+    if (!userEmail) {
+      setMessage("You must be logged in to upload files.");
       return;
     }
 
-    if (!userEmail) {
-      setMessage("You must be logged in to upload files.");
+    try {
+      if (isEdit) {
+        setUploading(true);
+        const updateData = {
+          courseid: courseNumber,
+          subname: subjectName,
+          credits: credits,
+        };
+
+        const { error: updateError } = await supabase
+        .from("uploads")
+        .update(updateData)
+        .match({ id: fileID });
+
+        if (updateError) throw updateError;
+
+        navigate("/files");
+        return;
+      }
+    } catch (error) {
+      console.error("Error updating file:", error);
+      setMessage("Error updating file. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+    
+    if (!file) {
+      setMessage("Please select a file to upload.");
       return;
     }
 
@@ -74,8 +119,8 @@ function FileUpload() {
           subname: subjectName,
           credits: credits,
           fileurl: filePublicURL,
-          uploaded_by_name: userName, 
-          uploaded_by_email: userEmail, 
+          uploaded_by_name: userName,
+          uploaded_by_email: userEmail,
         },
       ]);
 
@@ -96,33 +141,72 @@ function FileUpload() {
   };
 
   return (
-    <div>
+    <Container className="mt-4">
       <h2>Upload a File</h2>
-      {userEmail ? <p>Logged in as: {userName} ({userEmail})</p> : <p>Please log in to upload.</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Course Number:</label>
-          <input type="text" value={courseNumber} onChange={(e) => setCourseNumber(e.target.value)} required />
-        </div>
-        <div>
-          <label>Subject Name:</label>
-          <input type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
-        </div>
-        <div>
-          <label>Number of Credits:</label>
-          <input type="number" value={credits} onChange={(e) => setCredits(e.target.value)} required />
-        </div>
-        <div>
-          <label>Upload File (PDF or DOCX):</label>
-          <input type="file" accept=".pdf,.docx" onChange={handleFileChange} required />
-        </div>
-        <button type="submit" disabled={uploading}>
-          {uploading ? "Uploading..." : "Submit"}
-        </button>
-      </form>
-      {message && <p>{message}</p>}
-      {fileURL && <p>File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer">{fileURL}</a></p>}
-    </div>
+      {userEmail ? (
+        <Alert variant="info">
+          Logged in as: {userName} ({userEmail})
+        </Alert>
+      ) : (
+        <Alert variant="warning">Please log in to upload.</Alert>
+      )}
+      {message && <Alert variant="info">{message}</Alert>}
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>Course Number</Form.Label>
+          <Form.Control
+            type="text"
+            value={courseNumber}
+            onChange={(e) => setCourseNumber(e.target.value)}
+            required
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Subject Name</Form.Label>
+          <Form.Control
+            type="text"
+            value={subjectName}
+            onChange={(e) => setSubjectName(e.target.value)}
+            required
+          />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Number of Credits</Form.Label>
+          <Form.Control
+            type="number"
+            value={credits}
+            onChange={(e) => setCredits(e.target.value)}
+            required
+          />
+        </Form.Group>
+        {!isEdit && (
+          <Form.Group className="mb-3">
+            <Form.Label>Upload File (PDF or DOCX)</Form.Label>
+            <Form.Control
+              type="file"
+              accept=".pdf,.docx"
+              onChange={handleFileChange}
+              required
+            />
+          </Form.Group>
+        )}
+        <Button variant="primary" type="submit" disabled={uploading}>
+          {uploading ? (
+            <Spinner as="span" animation="border" size="sm" />
+          ) : (
+            "Submit"
+          )}
+        </Button>
+      </Form>
+      {fileURL && (
+        <Alert variant="success" className="mt-3">
+          File URL:{" "}
+          <a href={fileURL} target="_blank" rel="noopener noreferrer">
+            {fileURL}
+          </a>
+        </Alert>
+      )}
+    </Container>
   );
 }
 

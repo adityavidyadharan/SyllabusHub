@@ -38,8 +38,9 @@
 }
 
 /* Active (Selected) Tab */
-.nav-link.active,
+
+/* .nav-link.active,
 .nav-link:hover {
-  background-color: #003057; /* Georgia Tech Blue */
-  color: white !important; /* Text remains white */
-}
+  background-color: #003057;
+  color: white !important;
+} */
