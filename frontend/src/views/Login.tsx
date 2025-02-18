@@ -2,7 +2,7 @@ import { StyledFirebaseAuth } from "react-firebaseui";
 import { uiConfig } from "../firebase/firebase";
 import firebase from "firebase/compat/app";
 import { useState } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Container } from "react-bootstrap";
 import UserInfo from "../components/UserInfo";
 
 export default function Login() {
@@ -20,7 +20,7 @@ export default function Login() {
     });
     
     return (
-        <div>
+        <Container className="text-center">
             <h1>Login</h1>
             {
                 !signedIn && <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />
@@ -33,6 +33,6 @@ export default function Login() {
                 </div>
             }
             
-        </div>
+        </Container>
     )
 }
