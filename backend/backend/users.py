@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from firebase_admin import auth
 from loguru import logger
+import json
 
 users = Blueprint('users', __name__)
 
@@ -24,9 +25,15 @@ def user_to_dict(user):
 def new_user():
     data = request.json
     uid = data.get('user_id')
+    email = data.get('email')
     # TODO determine user type (student, teacher)
-    # for now, all users are students
-    set_user_role(uid, "student")
+    # for now, use local JSON
+    role = ""
+    with open("backend/config/account_type.json") as f:
+        mapping = json.load(f)
+        role = mapping.get(email, "student")
+    logger.debug(f"Setting role {role} for user {uid} ({email})")
+    set_user_role(uid, role)
     user = auth.get_user(uid)
     return jsonify(user_to_dict(user)), 200
 

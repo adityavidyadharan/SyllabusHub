@@ -1,7 +1,7 @@
 import { StyledFirebaseAuth } from "react-firebaseui";
-import { app, uiConfig } from "../firebase/firebase";
+import { uiConfig } from "../firebase/firebase";
 import firebase from "firebase/compat/app";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "react-bootstrap";
 import UserInfo from "../components/UserInfo";
 

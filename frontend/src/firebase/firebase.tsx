@@ -1,5 +1,4 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
 import firebase from "firebase/compat/app";
 import 'firebase/compat/auth';
 // TODO: Add SDKs for Firebase products that you want to use
@@ -38,9 +37,7 @@ const uiConfig = {
     ],
     callbacks: {
       signInSuccessWithAuthResult: (authResult: firebase.auth.UserCredential) => {
-          // if (authResult.additionalUserInfo?.isNewUser) {
-            console.log("New user");
-            console.log(authResult.user?.uid);
+          if (authResult.additionalUserInfo?.isNewUser) {
             fetch('http://127.0.0.1:5001/users/new', {
               method: 'POST',
               headers: {
@@ -48,9 +45,10 @@ const uiConfig = {
               },
               body: JSON.stringify({
                 user_id: authResult.user?.uid,
+                email: authResult.user?.email,
               })
             });
-          // }
+          }
       }
     }
   };
