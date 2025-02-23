@@ -16,7 +16,9 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
+const initializeApp = () => {
+  firebase.initializeApp(firebaseConfig);
+}
 
 // const provider = new firebase.auth.OAuthProvider('microsoft.com');
 // provider.setCustomParameters({
@@ -53,4 +55,4 @@ const uiConfig = {
     }
   };
 
-export { app, uiConfig };
+export { initializeApp, uiConfig };

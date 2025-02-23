@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "../firebase/firebase";
-import { Table, Form, Button, Container, Alert, Spinner } from "react-bootstrap";
+import {
+  Table,
+  Form,
+  Button,
+  Container,
+  Spinner,
+} from "react-bootstrap";
 import { useNavigate } from "react-router";
 import { FileData } from "../types/FileTypes";
-
-
-
-const supabase = createClient(
-  "https://tsbrojrazwcsjqzvnopi.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw"
-);
+import firebase from "firebase/compat/app";
+import { supabase } from "../clients/supabase";
 
 function ViewFiles() {
   const [files, setFiles] = useState<FileData[]>([]);
@@ -19,30 +18,34 @@ function ViewFiles() {
   const [courseFilter, setCourseFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [creditsFilter, setCreditsFilter] = useState("");
-  const [editingFile, setEditingFile] = useState<FileData | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchFiles();
-
-    const auth = getAuth(app);
+    const auth = firebase.auth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser(user.displayName || null);
+        setCurrentUser(user.email || null);
       } else {
         setCurrentUser(null);
       }
     });
-
+    
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      fetchFiles();
+    }
+  }
+  , [currentUser]);
+
   const handleEdit = (file: FileData) => {
     navigate("/upload", { state: { file } });
-  }
+  };
 
   const handleDelete = async (file: FileData) => {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
@@ -87,15 +90,22 @@ function ViewFiles() {
 
   const fetchFiles = async () => {
     try {
+      setLoading(true);
+      console.log(currentUser);
       const { data, error } = await supabase
         .from("uploads")
-        .select("id, courseid, subname, credits, fileurl, uploaded_by_name");
+        .select("id, courseid, subname, credits, fileurl, uploaded_by_name, uploaded_by_email")
+        // filter by user email
+        .eq("uploaded_by_email", currentUser);
+      console.log(data);
 
       if (error) throw error;
 
       setFiles(data || []);
       setFilteredFiles(data || []);
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       alert("Failed to fetch files. Please try again.");
     }
   };
@@ -103,8 +113,12 @@ function ViewFiles() {
   useEffect(() => {
     const filtered = files.filter((file) => {
       return (
-        (courseFilter ? file.courseid.toLowerCase().includes(courseFilter.toLowerCase()) : true) &&
-        (subjectFilter ? file.subname.toLowerCase().includes(subjectFilter.toLowerCase()) : true) &&
+        (courseFilter
+          ? file.courseid.toLowerCase().includes(courseFilter.toLowerCase())
+          : true) &&
+        (subjectFilter
+          ? file.subname.toLowerCase().includes(subjectFilter.toLowerCase())
+          : true) &&
         (creditsFilter ? file.credits.toString() === creditsFilter : true)
       );
     });
@@ -147,37 +161,65 @@ function ViewFiles() {
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody>
-          {filteredFiles.length > 0 ? (
-            filteredFiles.map((file) => (
-              <tr key={file.id}>
-                <td>{file.courseid}</td>
-                <td>{file.subname}</td>
-                <td>{file.credits}</td>
-                <td>{file.uploaded_by_name || "Unknown"}</td>
-                <td>
-                  <a href={file.fileurl} target="_blank" rel="noopener noreferrer">
-                    View File
-                  </a>
-                </td>
-                <td>
-                  {currentUser === file.uploaded_by_name ? (
-                    <>
-                      <Button variant="warning" size="sm" onClick={() => handleEdit(file)}>Edit</Button>{' '}
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(file)}>Delete</Button>
-                    </>
-                  ) : (
-                    <span>N/A</span>
-                  )}
+        {loading ? (
+          <tbody>
+            <tr>
+              <td colSpan={6} className="text-center">
+                <Spinner animation="border" />
+              </td>
+            </tr>
+          </tbody>
+        ) : (
+          <tbody>
+            {filteredFiles.length > 0 ? (
+              filteredFiles.map((file) => (
+                <tr key={file.id}>
+                  <td>{file.courseid}</td>
+                  <td>{file.subname}</td>
+                  <td>{file.credits}</td>
+                  <td>{file.uploaded_by_name || "Unknown"}</td>
+                  <td>
+                    <a
+                      href={file.fileurl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View File
+                    </a>
+                  </td>
+                  <td>
+                    {currentUser === file.uploaded_by_email ? (
+                      <>
+                        <Button
+                          variant="warning"
+                          size="sm"
+                          onClick={() => handleEdit(file)}
+                        >
+                          Edit
+                        </Button>{" "}
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(file)}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    ) : (
+                      <span>N/A</span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="text-center">
+                  No matching files found.
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={6} className="text-center">No matching files found.</td>
-            </tr>
-          )}
-        </tbody>
+            )}
+          </tbody>
+        )}
       </Table>
     </Container>
   );

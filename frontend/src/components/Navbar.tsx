@@ -1,4 +1,4 @@
-import { Navbar as BNavbar, Container, Nav } from "react-bootstrap";
+import { Navbar as BNavbar, Container, Nav, NavDropdown } from "react-bootstrap";
 import { Link } from "react-router";
 import LoginDropdown from "./LoginDropdown";
 import firebase from "firebase/compat/app";
@@ -14,7 +14,6 @@ function Navbar() {
           setLoggedIn(!!user);
           if (user) {
               user.getIdTokenResult().then(idTokenResult => {
-                console.log(idTokenResult.claims.role);
                   if (idTokenResult.claims.role === "professor") {
                       setIsProfessor(true);
                   } else {
@@ -49,17 +48,15 @@ function Navbar() {
             </Nav>
           )}
           {isProfessor && (
-            <Nav className="me-auto">
-              <Nav.Link as={Link} to="/upload">
+            <NavDropdown title="Files" id="basic-nav-dropdown">
+              <NavDropdown.Item as={Link} to="/upload">
                 File Upload
-              </Nav.Link>
-            </Nav>
+              </NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/files">
+                Uploaded Files
+              </NavDropdown.Item>
+            </NavDropdown>
           )}
-          <Nav className="me-auto">
-            <Nav.Link as={Link} to="/files">
-              View Files
-            </Nav.Link>
-          </Nav>
         </BNavbar.Collapse>
         <BNavbar.Collapse className="justify-content-end">
           <LoginDropdown />

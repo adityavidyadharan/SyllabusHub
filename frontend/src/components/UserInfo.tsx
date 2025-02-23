@@ -1,13 +1,12 @@
 import firebase from "firebase/compat/app";
 import { useState, useEffect } from "react";
 import { Badge, Container, Row } from "react-bootstrap";
-import { app } from "../firebase/firebase";
 
 export default function UserInfo() {
         const [role, setRole] = useState("");
     
         useEffect(() => {
-            app.auth().onAuthStateChanged(user => {
+            firebase.app().auth().onAuthStateChanged(user => {
                 console.log(user);
                 if (user) {
                     user.getIdTokenResult().then(idTokenResult => {

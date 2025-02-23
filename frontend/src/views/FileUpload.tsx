@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "../firebase/firebase";
 import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router";
 import { FileData } from "../types/FileTypes";
-
-// Initialize Supabase Client
-const supabase = createClient(
-  "https://tsbrojrazwcsjqzvnopi.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzYnJvanJhendjc2pxenZub3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MTc1ODMsImV4cCI6MjA1NTI5MzU4M30.5gdS__fSoNQkyrqfuG6WPQPZCEqhPmJKyxlAevemIQw"
-);
+import firebase from "firebase/compat/app";
+import { supabase } from "../clients/supabase";
 
 function FileUpload() {
   const [courseNumber, setCourseNumber] = useState("");
@@ -39,7 +33,7 @@ function FileUpload() {
     }
   }, [existingFile]);
 
-  const auth = getAuth(app);
+  const auth = firebase.auth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {

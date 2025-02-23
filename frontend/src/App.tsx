@@ -5,8 +5,12 @@ import Home from "./views/Home";
 import Navbar from "./components/Navbar";
 import FileUpload from "./views/FileUpload";  
 import ViewFiles from "./views/ViewFiles";  // ✅ Import ViewFiles
+import { initializeApp } from "./clients/firebase";
+
 
 function App() {
+  initializeApp();
+
   return (
     <BrowserRouter>
       <Navbar />
