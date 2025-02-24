@@ -10,6 +10,8 @@ function FileUpload() {
   const [courseNumber, setCourseNumber] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [credits, setCredits] = useState("");
+  const [semester, setSemester] = useState("");
+  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
@@ -21,6 +23,18 @@ function FileUpload() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Get the current year for validation
+  const currentYear = new Date().getFullYear();
+  
+  // Valid semester options
+  const validSemesters = ["Spring", "Summer", "Fall"];
+
+  // Generate array of years for the dropdown (from 1900 to current year)
+  const yearOptions = Array.from(
+    { length: currentYear - 1899 },
+    (_, i) => currentYear - i
+  );
+
   const existingFile = location.state?.file as FileData || null;
   useEffect(() => {
     if (existingFile) {
@@ -29,6 +43,9 @@ function FileUpload() {
       setSubjectName(existingFile.subname);
       setCredits(existingFile.credits.toString());
       setFileURL(existingFile.fileurl);
+      // Set semester and year if they exist in the existingFile
+      if (existingFile.semester) setSemester(existingFile.semester);
+      if (existingFile.year) setYear(existingFile.year);
       setIsEdit(true);
     }
   }, [existingFile]);
@@ -69,6 +86,8 @@ function FileUpload() {
           courseid: courseNumber,
           subname: subjectName,
           credits: credits,
+          semester: semester,
+          year: year
         };
 
         const { error: updateError } = await supabase
@@ -112,6 +131,8 @@ function FileUpload() {
           courseid: courseNumber,
           subname: subjectName,
           credits: credits,
+          semester: semester,
+          year: year,
           fileurl: filePublicURL,
           uploaded_by_name: userName,
           uploaded_by_email: userEmail,
@@ -125,6 +146,8 @@ function FileUpload() {
       setCourseNumber("");
       setSubjectName("");
       setCredits("");
+      setSemester("");
+      setYear(currentYear);
       setFile(null);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -172,6 +195,36 @@ function FileUpload() {
             onChange={(e) => setCredits(e.target.value)}
             required
           />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Semester</Form.Label>
+          <Form.Select
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            required
+          >
+            <option value="">Select Semester</option>
+            {validSemesters.map((sem) => (
+              <option key={sem} value={sem}>
+                {sem}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Year</Form.Label>
+          <Form.Select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            required
+          >
+            <option value="">Select Year</option>
+            {yearOptions.map((yr) => (
+              <option key={yr} value={yr}>
+                {yr}
+              </option>
+            ))}
+          </Form.Select>
         </Form.Group>
         {!isEdit && (
           <Form.Group className="mb-3">
