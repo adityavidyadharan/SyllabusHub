@@ -71,6 +71,14 @@ function FileUpload() {
     }
   };
 
+  // Function to sanitize filenames for Supabase storage
+  const sanitizeFileName = (fileName: string): string => {
+    // Replace square brackets, parentheses, and other special characters
+    return fileName
+      .replace(/[\[\](){}:;*?/\\<>|#%&]/g, '_')
+      .replace(/\s+/g, '_');
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -115,12 +123,20 @@ function FileUpload() {
     setUploading(true);
     setMessage("");
 
-    const filePath = `course_syllabuses/${Date.now()}-${file.name}`;
+    // Sanitize the filename before uploading
+    const sanitizedFileName = sanitizeFileName(file.name);
+    const filePath = `course_syllabuses/${Date.now()}-${sanitizedFileName}`;
 
     try {
+      // Create a new file with the sanitized name
+      const fileToUpload = new File([file], sanitizedFileName, {
+        type: file.type,
+        lastModified: file.lastModified
+      });
+
       const { data, error } = await supabase.storage
         .from("Course Syllabuses")
-        .upload(filePath, file);
+        .upload(filePath, fileToUpload);
 
       if (error) throw error;
 
@@ -235,6 +251,9 @@ function FileUpload() {
               onChange={handleFileChange}
               required
             />
+            <Form.Text className="text-muted">
+              Note: Special characters in filenames will be replaced with underscores.
+            </Form.Text>
           </Form.Group>
         )}
         <Button variant="primary" type="submit" disabled={uploading}>
