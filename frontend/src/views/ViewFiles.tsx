@@ -97,14 +97,18 @@ function ViewFiles() {
   };
 
   const fetchFiles = async () => {
+    if (!currentUser) return; // Ensure user is logged in
+  
     try {
       setLoading(true);
+  
       const { data, error } = await supabase
         .from("uploads")
-        .select("*");
-
+        .select("*")
+        .eq("uploaded_by_email", currentUser); // Filter files by user email
+  
       if (error) throw error;
-
+  
       setFiles(data || []);
       setFilteredFiles(data || []);
       setLoading(false);
@@ -113,6 +117,7 @@ function ViewFiles() {
       showAlert("Failed to fetch files. Please try again.", "danger");
     }
   };
+  
 
   const handleEdit = (file: FileData) => {
     // Navigate to the upload page with the file data for editing
