@@ -267,11 +267,11 @@ function ViewFiles() {
                   onChange={(e) => setYearFilter(e.target.value)}
                 >
                   <option value="">Filter by Year</option>
-                  {[...Array(10)].map((_, i) => (
-                    <option key={i} value={(new Date().getFullYear() - i).toString()}>
-                      {new Date().getFullYear() - i}
-                    </option>
-                  ))}
+                  {[...Array(new Date().getFullYear() - 1999 + 3)].map((_, i) => (
+    <option key={i} value={(new Date().getFullYear() - i + 2).toString()}>
+      {new Date().getFullYear() - i + 2}
+    </option>
+  ))}
                 </Form.Select>
               </Col>
               <Col md={12} className="mt-2">

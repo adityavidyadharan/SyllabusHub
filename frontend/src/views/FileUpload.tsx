@@ -30,10 +30,11 @@ function FileUpload() {
   const validSemesters = ["Spring", "Summer", "Fall"];
 
   // Generate array of years for the dropdown (from 1900 to current year)
-  const yearOptions = Array.from(
-    { length: currentYear - 1899 },
-    (_, i) => currentYear - i
-  );
+  // Generate array of years from 1900 up to 2 years into the future
+const yearOptions = Array.from(
+  { length: (currentYear + 2) - 1899 },
+  (_, i) => currentYear + 2 - i
+);
 
   const existingFile = location.state?.file as FileData || null;
   useEffect(() => {
