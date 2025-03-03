@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import FileUpload from "./views/FileUpload";  
 import ViewFiles from "./views/ViewFiles";  // ✅ Import ViewFiles
 import { initializeApp } from "./clients/firebase";
+import UploadDetails from "./views/UploadDetails";
 
 
 function App() {
@@ -18,7 +19,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/upload" element={<FileUpload />} />
-        <Route path="/files" element={<ViewFiles />} /> {/* ✅ Add ViewFiles Route */}
+        <Route path="/files" element={<ViewFiles />} />
+        <Route path="/details/:uploadId" element={<UploadDetails />} />
       </Routes>
     </BrowserRouter>
   );

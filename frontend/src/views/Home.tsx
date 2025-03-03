@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -10,10 +10,23 @@ import {
 } from "react-bootstrap";
 import { supabase } from "../clients/supabase";
 import { UserUploadedFile } from "../types/relations";
+import { Link, useSearchParams } from "react-router";
+
+type ValidCourse = {
+  course_number: number;
+  course_subject: string;
+  name: string;
+};
 
 export default function Home() {
+  const [professorList, setProfessorList] = useState<string[]>([]);
+  const [courseSubjectList, setCourseSubjectList] = useState<string[]>([]);
+  const [courseNumberList, setCourseNumberList] = useState<string[]>([]);
+  const [courseNameList, setCourseNameList] = useState<string[]>([]);
+
   const [professorSearch, setProfessorSearch] = useState("");
-  const [courseSearch, setCourseSearch] = useState("");
+  const [courseNameSearch, setCourseNameSearch] = useState("");
+  const [courseSubjectSearch, setCourseSubjectSearch] = useState("");
   const [courseNumberSearch, setCourseNumberSearch] = useState("");
   const [semesterSearch, setSemesterSearch] = useState("");
   const [yearSearch, setYearSearch] = useState("");
@@ -22,24 +35,83 @@ export default function Home() {
 
   const validSemesters = ["Spring", "Summer", "Fall"];
 
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const professor = searchParams.get("professor");
+    const courseName = searchParams.get("courseName");
+    const courseSubject = searchParams.get("courseSubject");
+    const courseNumber = searchParams.get("courseNumber");
+    if (professor) {
+      setProfessorSearch(professor);
+    }
+    if (courseName) {
+      setCourseNameSearch(courseName);
+    }
+    if (courseSubject) {
+      setCourseSubjectSearch(courseSubject);
+    }
+    if (courseNumber) {
+      setCourseNumberSearch(courseNumber);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5001/courses/professors")
+      .then((res) => res.json())
+      .then((data) => {
+        setProfessorList(data);
+      });
+    }, []);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:5001/courses/valid/subjects")
+      .then((res) => res.json())
+      .then((data) => {
+        setCourseSubjectList(data);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (courseSubjectSearch) {
+      fetch(`http://127.0.0.1:5001/courses/valid?subject=${courseSubjectSearch}`)
+        .then((res) => res.json())
+        .then((data: ValidCourse[]) => {
+          setCourseNumberList(data.map((course) => course.course_number.toString()));
+          setCourseNameList(data.map((course) => course.name));
+        });
+    } else {
+      setCourseNumberList([]);
+      fetch("http://127.0.0.1:5001/courses/valid")
+        .then((res) => res.json())
+        .then((data: ValidCourse[]) => {
+          setCourseNameList(data.map((course) => course.name));
+        });
+    }
+  }, [courseSubjectSearch]);
+
   const handleSearch = async () => {
     console.log("Searching for syllabi...");
     setLoading(true);
+    
 
     let query = supabase
       .from("uploads")
       .select(
-        "id, semester, year, fileurl, courses(course_number, course_subject, name), professors(name, firebase_id)"
+        "id, semester, year, fileurl, courses!inner(course_number, course_subject, name), professors!inner(id, name, firebase_id)"
       );
 
     if (professorSearch) {
-      query = query.ilike("uploaded_by_name", `%${professorSearch}%`);
+      query = query.eq("professors.name", professorSearch);
     }
-    if (courseSearch) {
-      query = query.ilike("subname", `%${courseSearch}%`);
+    if (courseNameSearch) {
+      query = query.ilike("courses.name", `%${courseNameSearch}%`);
     }
     if (courseNumberSearch) {
-      query = query.ilike("courseid", `%${courseNumberSearch}%`);
+      query = query.eq("courses.course_number", parseInt(courseNumberSearch, 10));
+    }
+    if (courseSubjectSearch) {
+      query = query.eq("courses.course_subject", courseSubjectSearch);
     }
     if (semesterSearch) {
       query = query.eq("semester", semesterSearch);
@@ -47,8 +119,8 @@ export default function Home() {
     if (yearSearch) {
       query = query.eq("year", parseInt(yearSearch, 10));
     }
-
-    const { data, error } = await query;
+    const { data, error } = await query
+    console.log('resp', professorSearch, data);
     if (error) {
       console.error("Error fetching syllabi:", error);
     } else {
@@ -59,8 +131,9 @@ export default function Home() {
 
   const resetFilters = () => {
     setProfessorSearch("");
-    setCourseSearch("");
+    setCourseSubjectSearch("");
     setCourseNumberSearch("");
+    setCourseNameSearch("");
     setSemesterSearch("");
     setYearSearch("");
   };
@@ -74,40 +147,66 @@ export default function Home() {
 
         <Row className="g-3">
           <Col md={4}>
-            <Form.Group controlId="professorSearch">
-              <Form.Label>Professor Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter professor name"
-                value={professorSearch}
-                onChange={(e) => setProfessorSearch(e.target.value)}
-              />
+            <Form.Group className="mb-3">
+              <Form.Label>Professor</Form.Label>
+              <Form.Select value={professorSearch} onChange={(e) => setProfessorSearch(e.target.value)}>
+                <option value="">Select a professor</option>
+                {professorList.map((prof) => (
+                  <option key={prof} value={prof}>
+                    {prof}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={4}>
+            <Form.Group controlId="courseSubjectSearch">
+              <Form.Label>Course Subject</Form.Label>
+              <Form.Select
+                value={courseSubjectSearch}
+                onChange={(e) => setCourseSubjectSearch(e.target.value)}
+              >
+                <option value="">Select Course Subject</option>
+                {courseSubjectList.map((subject) => (
+                  <option key={subject} value={subject}>
+                    {subject}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </Col>
           <Col md={4}>
             <Form.Group controlId="courseSearch">
               <Form.Label>Course Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter course name"
-                value={courseSearch}
-                onChange={(e) => setCourseSearch(e.target.value)}
-              />
+              <Form.Select
+                value={courseNameSearch}
+                onChange={(e) => setCourseNameSearch(e.target.value)}
+              >
+                <option value="">Select Course Name</option>
+                {courseNameList.map((course_name) => (
+                  <option key={course_name} value={course_name}>
+                    {course_name}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </Col>
           <Col md={4}>
-            <Form.Group controlId="courseNumberSearch">
-              <Form.Label>Course Number</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter course number"
-                value={courseNumberSearch}
-                onChange={(e) => setCourseNumberSearch(e.target.value)}
-              />
-            </Form.Group>
+            <Form.Group className="mb-3">
+          <Form.Label>Course Number</Form.Label>
+            <Form.Select value={courseNumberSearch} onChange={(e) => {
+              setCourseNumberSearch(e.target.value);
+            }} required disabled={!courseSubjectSearch}>
+              <option value="">Select a number</option>
+              {courseNumberList.map((course_number) => (
+                <option key={course_number} value={course_number}>
+                  {course_number}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
           </Col>
         </Row>
-
         <Row className="g-3 mt-2">
           <Col md={4}>
             <Form.Group controlId="semesterSearch">
@@ -183,18 +282,19 @@ export default function Home() {
               <th>Semester</th>
               <th>Year</th>
               <th>Professor</th>
-              <th>File</th>
+              {/* <th>File</th> */}
             </tr>
           </thead>
           <tbody>
             {results.map((syllabus) => (
               <tr key={syllabus.id}>
-                <td>{syllabus.courses.name}</td>
+                {/* <td>{syllabus.courses.name}</td> */}
+                <td><Link to={`/details/${syllabus.id}`}>{syllabus.courses.name}</Link></td>
                 <td>{`${syllabus.courses.course_subject} ${syllabus.courses.course_number}`}</td>
                 <td>{syllabus.semester || "N/A"}</td>
                 <td>{syllabus.year || "N/A"}</td>
                 <td>{syllabus.professors.name || "N/A"}</td>
-                <td>
+                {/* <td>
                   <a
                     href={syllabus.fileurl}
                     target="_blank"
@@ -202,7 +302,7 @@ export default function Home() {
                   >
                     View File
                   </a>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>
