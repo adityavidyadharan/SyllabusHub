@@ -104,7 +104,7 @@ function ViewFiles() {
       setLoading(true);
       const { data, error } = await supabase
         .from("uploads")
-        .select("id, semester, year, fileurl, courses(course_number, course_subject, name), professors(name, firebase_id)")
+        .select("id, semester, year, fileurl, courses(id, course_number, course_subject, name), professors(name, firebase_id)")
         .eq("professors.firebase_id", currentUser);
       if (error) throw error;
       if (!data) return;

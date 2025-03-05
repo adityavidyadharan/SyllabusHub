@@ -4,7 +4,8 @@ import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router";
 import firebase from "firebase/compat/app";
 import { supabase } from "../clients/supabase";
-import { Database, Tables } from "../types/db";
+import { Database } from "../types/db";
+import { UserUploadedFile } from "../types/relations";
 
 function FileUpload() {
   const [courseId, setCourseId] = useState("");
@@ -33,19 +34,16 @@ function FileUpload() {
 
   const auth = firebase.auth();
 
-  const existingFile = location.state?.file as Tables<"uploads"> || null;
+  const existingFile = location.state?.file as UserUploadedFile || null;
 
   useEffect(() => {
     if (existingFile) {
       setSemesterSeason(existingFile.semester);
       setSemesterYear(existingFile.year.toString());
-      async function getCourseInfo() {
-        const course = await supabase.from("courses").select("*").eq("id", existingFile.course_id).single();
-        setCourseNumber(course.data?.course_number?.toString() || "");
-        setCourseSubject(course.data?.course_subject || "");
-        setCourseName(course.data?.name || "");
-      }
-      getCourseInfo();
+      setCourseNumber(existingFile.courses.course_number.toString());
+      setCourseSubject(existingFile.courses.course_subject);
+      setCourseName(existingFile.courses.name);
+      setCourseId(existingFile.courses.id.toString());
       setFileID(existingFile.id);
       setFileURL(existingFile.fileurl || "");
       setIsEdit(true);
@@ -142,7 +140,7 @@ function FileUpload() {
           crn: null,
           semester: semesterSeason,
           year: parseInt(semesterYear),
-          course_id: parseInt(courseNumber),
+          course_id: parseInt(courseId),
           professor_id: userId,
         };
 
@@ -159,8 +157,8 @@ function FileUpload() {
     } catch (error) {
       console.error("Error updating file:", error);
       setMessage("Error updating file. Please try again.");
-    } finally {
       setUploading(false);
+      return;
     }
     
     if (!file) {

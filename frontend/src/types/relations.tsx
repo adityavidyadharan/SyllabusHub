@@ -15,6 +15,7 @@ export type UserUploadedFile = {
     year: number;
     fileurl: string;
     courses: {
+        id: number;
         course_number: number;
         course_subject: string;
         name: string;
