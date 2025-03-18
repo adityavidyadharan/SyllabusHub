@@ -22,7 +22,7 @@ install_and_import('streamlit')
 from pdfminer.high_level import extract_text
 import PyPDF2
 import io
-import streamlit as st
+#import streamlit as st
 from pdfminer.high_level import extract_text
 
 # Automatically download ALL required NLTK resources
@@ -478,7 +478,7 @@ def extract_text_from_pdf(pdf_file):
         text = extract_text_from_pdf_pypdf(pdf_file)
         
     return text
-
+'''
 # Streamlit app
 def main():
     st.title("Syllabus Tagger")
@@ -569,4 +569,5 @@ def main():
             st.error("Could not extract text from the PDF. Please make sure it's a text-based PDF and not just scanned images.")
 
 if __name__ == "__main__":
-    main()
+    main()'
+    '''
