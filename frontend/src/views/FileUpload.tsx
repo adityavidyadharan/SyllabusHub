@@ -26,6 +26,11 @@ function FileUpload() {
 
   const [courseSubjects, setCourseSubjects] = useState<string[]>([]);
   const [courseNumbers, setCourseNumbers] = useState<Record<number, number>>({});
+
+  const [tags, setTags] = useState<Record<string, boolean>>({});
+  const [tagReasoning, setTagReasoning] = useState<any>(null);
+  const [generatingTags, setGeneratingTags] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -125,6 +130,50 @@ function FileUpload() {
       .replace(/\s+/g, '_');
   };
 
+  // Function for generating tags
+  const generateTags = async (fileUrl: string) => {
+  try {
+    setGeneratingTags(true);
+/*
+    const response = await fetch('http://127.0.0.1:5001/generate-tags', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileUrl
+      }),
+    });
+  */
+ 
+    const response = await fetch('http://127.0.0.1:5001/tags/generate-tags', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      mode: 'cors', // Ensure CORS mode is enabled
+      body: JSON.stringify({
+        fileUrl: fileUrl,
+      }),
+    });
+    
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate tags');
+    }
+    
+    const result = await response.json();
+    setTags(result.tags);
+    setTagReasoning(result.reasoning);
+    return result;
+  } catch (error) {
+    console.error('Error generating tags:', error);
+    setMessage(prev => `${prev}\nError generating tags: ${error}`);
+    return null;
+  } finally {
+    setGeneratingTags(false);
+  }
+};
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -199,6 +248,18 @@ function FileUpload() {
       ]);
 
       if (dbError) throw dbError;
+      // Inside your handleSubmit function, just before the setMessage line after a successful upload
+      if (filePublicURL) {
+        // Generate tags for the uploaded file
+        try{
+        const tags = await generateTags(filePublicURL);
+        if (tags) {
+          console.log('Generated tags:', tags);
+        }
+      }catch (error) {
+        console.error("Error generating tags:", error);
+        setMessage("Error updating file. Please try again.");}
+    }
 
       setMessage("File uploaded successfully!");
       setFileURL(filePublicURL);

@@ -4,7 +4,7 @@ from supabase import create_client, Client
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Supabase credentials
 SUPABASE_URL = "https://tsbrojrazwcsjqzvnopi.supabase.co"
@@ -12,6 +12,17 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 # Initialize Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+@app.route("/upload", methods=["OPTIONS"])
+def upload_options():
+    """Handle CORS preflight for /upload"""
+    response = make_response()
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -34,3 +45,5 @@ def upload_file():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+
