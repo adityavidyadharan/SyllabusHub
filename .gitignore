@@ -1,5 +1,9 @@
 *FirebaseSA.json
 *SupabaseSA.json
+*CanvasAPIKey.json
+
+*.sqlite
+*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

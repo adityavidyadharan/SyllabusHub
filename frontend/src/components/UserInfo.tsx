@@ -1,6 +1,7 @@
 import firebase from "firebase/compat/app";
 import { useState, useEffect } from "react";
 import { Badge, Container, Row } from "react-bootstrap";
+import CanvasLink from "./CanvasLink";
 
 export default function UserInfo() {
         const [role, setRole] = useState("");
@@ -27,6 +28,7 @@ export default function UserInfo() {
             <Row>
                 <p>User Type: <Badge bg="primary">{role}</Badge></p> 
             </Row>
+            <CanvasLink />
         </Container>
     )
 }

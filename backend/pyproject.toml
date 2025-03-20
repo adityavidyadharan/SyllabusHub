@@ -13,6 +13,11 @@ dependencies = [
     "loguru (>=0.7.3,<0.8.0)",
     "flask-cors (>=5.0.0,<6.0.0)",
     "supabase (>=2.13.0,<3.0.0)",
+    "canvasapi (>=3.3.0,<4.0.0)",
+    "requests-cache (>=1.2.1,<2.0.0)",
+    "pdfminer-six (>=20240706,<20240707)",
+    "redis (>=5.2.1,<6.0.0)",
+    "weasyprint (>=64.1,<65.0)",
 ]
 
 [tool.poetry]
