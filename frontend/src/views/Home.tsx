@@ -29,6 +29,7 @@ export default function Home() {
   const [courseSubjectSearch, setCourseSubjectSearch] = useState("");
   const [courseNumberSearch, setCourseNumberSearch] = useState("");
   const [semesterSearch, setSemesterSearch] = useState("");
+  const [descriptionSearch, setDescriptionSearch] = useState("");
   const [yearSearch, setYearSearch] = useState("");
   const [results, setResults] = useState<UserUploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -119,6 +120,9 @@ export default function Home() {
     if (yearSearch) {
       query = query.eq("year", parseInt(yearSearch, 10));
     }
+    if (descriptionSearch) {
+      query = query.textSearch("courses.description", descriptionSearch.replace(/\s+/g, '+'));
+    }
     const { data, error } = await query
     console.log('resp', professorSearch, data);
     if (error) {
@@ -136,6 +140,7 @@ export default function Home() {
     setCourseNameSearch("");
     setSemesterSearch("");
     setYearSearch("");
+    setDescriptionSearch("");
   };
 
   return (
@@ -204,6 +209,16 @@ export default function Home() {
                 </option>
               ))}
             </Form.Select>
+          </Form.Group>
+          </Col>
+          <Col md={8}>
+          <Form.Group controlId="descriptionSearch">
+            <Form.Label>Description</Form.Label>
+            <Form.Control
+              type="text"
+              value={descriptionSearch}
+              onChange={(e) => setDescriptionSearch(e.target.value)}
+            />
           </Form.Group>
           </Col>
         </Row>
