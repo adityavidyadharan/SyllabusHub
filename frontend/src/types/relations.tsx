@@ -3,6 +3,7 @@ import { Tables } from "./db";
 type Upload = Tables<"uploads">;
 type Course = Tables<"courses">;
 type Professor = Tables<"professors">;
+export type Tags = Tables<"tags">;
 
 export type UploadWithRelations = Upload & {
     courses: Course;

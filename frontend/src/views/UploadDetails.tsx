@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Container, ListGroup, Spinner } from "react-bootstrap";
+import { Badge, Card, Container, ListGroup, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router";
 import { supabase } from "../clients/supabase";
 
@@ -18,6 +18,7 @@ type UploadInfo = {
     id: number;
     name: string;
   };
+  uploads_tags: { tags: { id: number; name: string } }[];
 };
 
 export default function UploadDetails() {
@@ -36,7 +37,7 @@ export default function UploadDetails() {
       const course = await supabase
         .from("uploads")
         .select(
-          "id, semester, year, fileurl, professors(id, name), courses(name, description, course_number, course_subject)"
+          "id, semester, year, fileurl, professors(id, name), courses(name, description, course_number, course_subject), uploads_tags(tags(id, name))"
         )
         .eq("id", parseInt(uploadId!, 10))
         .single();
@@ -56,19 +57,32 @@ export default function UploadDetails() {
           <Card className="shadow-sm p-4 mb-4">
             <Card.Body>
               <Card.Title className="fw-bold">
-                <Link to={`/?courseNumber=${upload?.courses.course_number}&courseSubject=${upload?.courses.course_subject}`}>
-                  {upload?.courses.course_subject} {upload?.courses.course_number}
-                </Link>{" - "}
+                <Link
+                  to={`/?courseNumber=${upload?.courses.course_number}&courseSubject=${upload?.courses.course_subject}`}
+                >
+                  {upload?.courses.course_subject}{" "}
+                  {upload?.courses.course_number}
+                </Link>
+                {" - "}
                 {upload?.courses.name}
               </Card.Title>
               <Card.Subtitle className="mb-3 text-muted">{`${upload?.semester} ${upload?.year}`}</Card.Subtitle>
 
               <ListGroup variant="flush">
                 <ListGroup.Item>
-                  <strong>Professor:</strong> {<Link to={`/?professor=${upload?.professors.name}`}>{upload?.professors.name}</Link>}
+                  <strong>Professor:</strong>{" "}
+                  {
+                    <Link to={`/?professor=${upload?.professors.name}`}>
+                      {upload?.professors.name}
+                    </Link>
+                  }
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <strong>Description:</strong> {upload?.courses.description}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  <strong>Tags:</strong>{" "}
+                  {upload?.uploads_tags.map((tag) => <Badge key={tag.tags.id} className="me-1">{tag.tags.name}</Badge>)}
                 </ListGroup.Item>
               </ListGroup>
             </Card.Body>

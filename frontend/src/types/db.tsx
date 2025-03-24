@@ -56,17 +56,17 @@ export type Database = {
       }
       tags: {
         Row: {
-          category: string
+          Category: Database["public"]["Enums"]["tag_group"] | null
           id: number
           name: string
         }
         Insert: {
-          category: string
+          Category?: Database["public"]["Enums"]["tag_group"] | null
           id?: number
           name: string
         }
         Update: {
-          category?: string
+          Category?: Database["public"]["Enums"]["tag_group"] | null
           id?: number
           name?: string
         }
@@ -158,7 +158,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      tag_group:
+        | "Grade Distribution"
+        | "Course Requirements"
+        | "Grade Requirements"
     }
     CompositeTypes: {
       [_ in never]: never

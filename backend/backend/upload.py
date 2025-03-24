@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify, request
+from backend.tag_api import parse_pdf
+from backend.nlpautotagging import SyllabusTagger
 from backend.courses import _course_details, find_or_create_professor_supabase, get_course_professor
 from backend.supabase import supabase
 from backend.canvas import fetch_syllabus
@@ -59,7 +61,6 @@ def import_syllabus():
     pdf_filename = f"syllabus_{semester}_{year}_{subject}_{number}.pdf"
     pdf_path = f"course_syllabuses/IMPORT{datetime.now().timestamp()}-{sanitize_filename(pdf_filename)}"
     pdf_data = pdf_file.read()
-    pdf_file.close()
     pdf_upload = supabase.storage.from_("Course Syllabuses").upload(file=pdf_data, path=pdf_path, file_options={"content-type": "application/pdf"})
     pdf_url = pdf_upload.full_path
     url_base = "https://tsbrojrazwcsjqzvnopi.supabase.co/storage/v1/object/public/"
@@ -87,5 +88,18 @@ def import_syllabus():
     upload_id = resp.data[0]["id"]
     logger.info(f"Uploaded syllabus with id {upload_id}")
     upload_data["upload_id"] = upload_id
+    
+    # generate tags
+    pdf_file.seek(0)
+    text = parse_pdf(pdf_file)
+    tagger = SyllabusTagger()
+    tags_list = tagger.generate_tags(text)
+    # 'project_heavy': {'is_tagged': True, 'keyword_count': 11, 'db_id': 2}, 'exam_heavy': {'is_tagged': False, 'keyword_count': 0, 'db_id': 1}, 'assignment_heavy': {'is_tagged': True, 'keyword_count': 11, 'db_id': 3}, 'needs_prerequisite': {'is_tagged': False, 'keyword_count': 1, 'db_id': 4}, 'attendance_required': {'is_tagged': True, 'attendance_strength': 1.0, 'db_id': 5}}
+    tag_names = [tag for tag in tags_list if tags_list[tag]["is_tagged"]]
+    logger.info(f"Generated tags for syllabus with id {upload_id}: {tag_names}")
+    tag_records = [tags_list[tag]["db_id"] for tag in tags_list if tags_list[tag]["is_tagged"]]
+    tag_inserts = [{"upload_id": upload_id, "tag_id": tag_id} for tag_id in tag_records]
+    resp = supabase.table("uploads_tags").insert(tag_inserts).execute()
+    logger.info(f"Inserted tags for syllabus with id {upload_id}")
     return jsonify(upload_data), 200
 

@@ -34,40 +34,48 @@ CORS(tags, resources={r"/*": {"origins": "*"}})
 
 nltk.download('punkt')
 
-@tags.before_request
-def handle_preflight():
-    """Handles CORS preflight OPTIONS requests for all endpoints under /tags."""
-    if request.method == "OPTIONS":
-        response = make_response()
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        return response
+# @tags.before_request
+# def handle_preflight():
+#     """Handles CORS preflight OPTIONS requests for all endpoints under /tags."""
+#     if request.method == "OPTIONS":
+#         response = make_response()
+#         response.headers["Access-Control-Allow-Origin"] = "*"
+#         response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+#         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+#         return response
+
+def parse_pdf(pdf_bytes: io.BytesIO) -> str:
+    """Extract text from a PDF file."""
+    try:
+        text = extract_text(pdf_bytes)
+        if not text or len(text.strip()) == 0:
+            pdf_bytes.seek(0)  # rewind before PyPDF2 reads it
+            pdf_reader = PyPDF2.PdfReader(pdf_bytes)
+            text = "".join([page.extract_text() for page in pdf_reader.pages])
+        return text
+    except Exception as e:
+        raise ValueError(f"Error extracting text: {str(e)}")
 
 @tags.route('/generate-tags', methods=['POST'])
 def generate_tags():
-    data = request.json
-    file_url = data.get('fileUrl')
-    if not file_url:
-        return jsonify({"error": "No file URL provided"}), 400
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    uploaded_file = request.files['file']
+    if uploaded_file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
     try:
-        response = requests.get(file_url)
-        if response.status_code != 200:
-            return jsonify({"error": f"Failed to download file: {response.status_code}"}), 400
-        
-        pdf_bytes = io.BytesIO(response.content)
+        pdf_bytes = io.BytesIO(uploaded_file.read())
         try:
-            text = extract_text(pdf_bytes)
-            if not text or len(text.strip()) == 0:
-                pdf_reader = PyPDF2.PdfReader(pdf_bytes)
-                text = "".join([pdf_reader.pages[i].extract_text() for i in range(len(pdf_reader.pages))])
+            text = parse_pdf(pdf_bytes)
         except Exception as e:
             return jsonify({"error": f"Error extracting text: {str(e)}"}), 500
 
         tagger = SyllabusTagger()
         tags_list = tagger.generate_tags(text)
         reasoning = tagger.get_tag_reasoning(text)
-        
+
         return jsonify({
             "tags": tags_list,
             "reasoning": reasoning

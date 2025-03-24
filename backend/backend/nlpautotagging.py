@@ -325,7 +325,7 @@ class SyllabusTagger:
             
         return count
     
-    def generate_tags(self, syllabus_text: str) -> Dict[str, bool]:
+    def generate_tags(self, syllabus_text: str) -> Dict[str, dict]:
         """
         Analyzes syllabus text and generates appropriate tags.
         """
@@ -348,20 +348,40 @@ class SyllabusTagger:
         
         # Generate tags based on thresholds and analyses
         tags = {
-            "project_heavy": (
-                project_count >= self.thresholds["project_heavy"]["keyword_threshold"] or
-                grade_distribution.get("project", 0) >= self.thresholds["project_heavy"]["grade_threshold"]
-            ),
-            "exam_heavy": (
-                exam_count >= self.thresholds["exam_heavy"]["keyword_threshold"] or
-                grade_distribution.get("exam", 0) >= self.thresholds["exam_heavy"]["grade_threshold"]
-            ),
-            "assignment_heavy": (
-                assignment_count >= self.thresholds["assignment_heavy"]["keyword_threshold"] or
-                grade_distribution.get("assignment", 0) >= self.thresholds["assignment_heavy"]["grade_threshold"]
-            ),
-            "needs_prerequisite": prereq_info["has_prerequisites"],
-            "attendance_required": attendance_strength >= self.thresholds["attendance_required"]["policy_strength"]
+            "project_heavy": {
+                "is_tagged": (
+                    project_count >= self.thresholds["project_heavy"]["keyword_threshold"] or
+                    grade_distribution.get("project", 0) >= self.thresholds["project_heavy"]["grade_threshold"]
+                ),
+                "keyword_count": project_count,
+                "db_id": 2,
+            },
+            "exam_heavy": {
+                "is_tagged": (
+                    exam_count >= self.thresholds["exam_heavy"]["keyword_threshold"] or
+                    grade_distribution.get("exam", 0) >= self.thresholds["exam_heavy"]["grade_threshold"]
+                ),
+                "keyword_count": exam_count,
+                "db_id": 1,
+            },
+            "assignment_heavy": {
+                "is_tagged": (
+                    assignment_count >= self.thresholds["assignment_heavy"]["keyword_threshold"] or
+                    grade_distribution.get("assignment", 0) >= self.thresholds["assignment_heavy"]["grade_threshold"]
+                ),
+                "keyword_count": assignment_count,
+                "db_id": 3,
+            },
+            "needs_prerequisite": {
+                "is_tagged": prereq_info["has_prerequisites"],
+                "keyword_count": prereq_info["count"],
+                "db_id": 4,
+            },
+            "attendance_required": {
+                "is_tagged": attendance_strength >= self.thresholds["attendance_required"]["policy_strength"],
+                "attendance_strength": attendance_strength,
+                "db_id": 5,
+            }
         }
         
         return tags

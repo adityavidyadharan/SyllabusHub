@@ -2,12 +2,15 @@ import { Button, Card, Spinner } from "react-bootstrap";
 import { CourseItem } from "./CanvasSync";
 import { Link } from "react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CanvasImportCard({ course }: { course: CourseItem }) {
   const alreadyImported = course.upload;
   const [loading, setLoading] = useState(false);
   const [uploadID, setUploadID] = useState<string | null>(null);
   const [section, setSection] = useState("");
+
+  const queryClient = useQueryClient()
 
   async function triggerUpload(course: CourseItem) {
     setLoading(true);
@@ -21,6 +24,19 @@ export default function CanvasImportCard({ course }: { course: CourseItem }) {
       });
       const data = await resp.json();
       setUploadID(data.upload_id);
+      queryClient.setQueryData(["canvas_courses"], (oldData: any) => {
+        const newCourses = {...oldData.courses};
+        newCourses[course.semester_year][course.semester].forEach((c) => {
+          if (c.canvas_course_id === course.canvas_course_id) {
+            c.upload = true;
+            c.upload_id = data.upload_id;
+          }
+        });
+        return {
+          ...oldData,
+          courses: newCourses,
+        };
+      });
     } catch (e) {
       console.error(e);
     }

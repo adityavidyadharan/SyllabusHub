@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { Form, Button, Container, Alert, Spinner } from "react-bootstrap";
+import {
+  Form,
+  Button,
+  Container,
+  Alert,
+  Spinner,
+  Col,
+  Row,
+} from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router";
 import firebase from "firebase/compat/app";
 import { supabase } from "../clients/supabase";
 import { Database } from "../types/db";
-import { UserUploadedFile } from "../types/relations";
+import { Tags, UserUploadedFile } from "../types/relations";
 
 function FileUpload() {
   const [courseId, setCourseId] = useState("");
@@ -25,10 +33,12 @@ function FileUpload() {
   const [isEdit, setIsEdit] = useState(false);
 
   const [courseSubjects, setCourseSubjects] = useState<string[]>([]);
-  const [courseNumbers, setCourseNumbers] = useState<Record<number, number>>({});
+  const [courseNumbers, setCourseNumbers] = useState<Record<number, number>>(
+    {}
+  );
 
-  const [tags, setTags] = useState<Record<string, boolean>>({});
-  const [tagReasoning, setTagReasoning] = useState<any>(null);
+  const [tagList, setTagList] = useState<Tags[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [generatingTags, setGeneratingTags] = useState(false);
 
   const location = useLocation();
@@ -39,7 +49,7 @@ function FileUpload() {
 
   const auth = firebase.auth();
 
-  const existingFile = location.state?.file as UserUploadedFile || null;
+  const existingFile = (location.state?.file as UserUploadedFile) || null;
 
   useEffect(() => {
     if (existingFile) {
@@ -54,6 +64,18 @@ function FileUpload() {
       setIsEdit(true);
     }
   }, [existingFile]);
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      const data = await supabase.from("tags").select("*");
+      if (data.error) {
+        console.error("Error fetching tags:", data.error);
+        return;
+      }
+      setTagList(data.data || []);
+    };
+    fetchTags();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -98,7 +120,9 @@ function FileUpload() {
       setCourseName("");
       return;
     }
-    fetch(`http://127.0.0.1:5001/courses/details/${courseSubject}/${courseNumber}`)
+    fetch(
+      `http://127.0.0.1:5001/courses/details/${courseSubject}/${courseNumber}`
+    )
       .then((response) => response.json())
       .then((data) => {
         setCourseName(data.name);
@@ -114,7 +138,7 @@ function FileUpload() {
     setSemesterSeason("");
     setFile(null);
     setMessage("");
-  }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -126,54 +150,55 @@ function FileUpload() {
   const sanitizeFileName = (fileName: string): string => {
     // Replace square brackets, parentheses, and other special characters
     return fileName
-      .replace(/[\[\](){}:;*?/\\<>|#%&]/g, '_')
-      .replace(/\s+/g, '_');
+      .replace(/[\[\](){}:;*?/\\<>|#%&]/g, "_")
+      .replace(/\s+/g, "_");
   };
 
   // Function for generating tags
-  const generateTags = async (fileUrl: string) => {
-  try {
-    setGeneratingTags(true);
-/*
-    const response = await fetch('http://127.0.0.1:5001/generate-tags', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fileUrl
-      }),
-    });
-  */
- 
-    const response = await fetch('http://127.0.0.1:5001/tags/generate-tags', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      mode: 'cors', // Ensure CORS mode is enabled
-      body: JSON.stringify({
-        fileUrl: fileUrl,
-      }),
-    });
-    
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate tags');
+  const generateTags = async () => {
+    if (!file) {
+      console.error("No file provided for generating tags");
+      setMessage((prev) => `${prev}\nNo file provided for generating tags`);
+      return null;
     }
-    
-    const result = await response.json();
-    setTags(result.tags);
-    setTagReasoning(result.reasoning);
-    return result;
-  } catch (error) {
-    console.error('Error generating tags:', error);
-    setMessage(prev => `${prev}\nError generating tags: ${error}`);
-    return null;
-  } finally {
-    setGeneratingTags(false);
-  }
-};
+    try {
+      setMessage("");
+      setGeneratingTags(true);
+      const data = new FormData();
+      data.append("file", file);
+
+      const response = await fetch("http://127.0.0.1:5001/tags/generate-tags", {
+        method: "POST",
+        body: data,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate tags");
+      }
+
+      const result: {
+        tags: {
+          [key: string]: {
+            is_tagged: boolean;
+            db_id: string;
+          };
+        };
+      } = await response.json();
+      setSelectedTags(
+        Object.keys(result.tags)
+          .filter((key) => result.tags[key].is_tagged)
+          .map((key) => result.tags[key].db_id)
+      );
+      // setTagReasoning(result.reasoning);
+      return result;
+    } catch (error) {
+      console.error("Error generating tags:", error);
+      setMessage((prev) => `${prev}\nError generating tags: ${error}`);
+      return null;
+    } finally {
+      setGeneratingTags(false);
+    }
+  };
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -194,9 +219,29 @@ function FileUpload() {
         };
 
         const { error: updateError } = await supabase
-        .from("uploads")
-        .update(updateData)
-        .match({ id: fileID });
+          .from("uploads")
+          .update(updateData)
+          .match({ id: fileID });
+
+        // delete existing tags
+        await supabase
+          .from("uploads_tags")
+          .delete()
+          .match({ upload_id: fileID });
+
+        // insert new tags
+        selectedTags.forEach(async (tagId) => {
+          const { error: tagError } = await supabase
+            .from("uploads_tags")
+            .insert([
+              {
+                upload_id: fileID,
+                tag_id: parseInt(tagId),
+              },
+            ]);
+
+          if (tagError) throw tagError;
+        });
 
         if (updateError) throw updateError;
 
@@ -209,7 +254,7 @@ function FileUpload() {
       setUploading(false);
       return;
     }
-    
+
     if (!file) {
       setMessage("Please select a file to upload.");
       return;
@@ -226,40 +271,46 @@ function FileUpload() {
       // Create a new file with the sanitized name
       const fileToUpload = new File([file], sanitizedFileName, {
         type: file.type,
-        lastModified: file.lastModified
+        lastModified: file.lastModified,
       });
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("Course Syllabuses")
         .upload(filePath, fileToUpload);
 
       if (error) throw error;
 
       const filePublicURL = `https://tsbrojrazwcsjqzvnopi.supabase.co/storage/v1/object/public/Course Syllabuses/${filePath}`;
-      const { error: dbError } = await supabase.from("uploads").insert<Database['public']['Tables']['uploads']['Insert']>([
-        {
-          crn: null,
-          fileurl: filePublicURL,
-          semester: semesterSeason,
-          year: parseInt(semesterYear),
-          course_id: parseInt(courseId),
-          professor_id: userId,
-        },
-      ]);
+      const { data: uploadData, error: dbError } = await supabase
+        .from("uploads")
+        .insert<Database["public"]["Tables"]["uploads"]["Insert"]>(
+          {
+            crn: null,
+            fileurl: filePublicURL,
+            semester: semesterSeason,
+            year: parseInt(semesterYear),
+            course_id: parseInt(courseId),
+            professor_id: userId,
+          },
+        ).select("id").single();
+        
 
       if (dbError) throw dbError;
-      // Inside your handleSubmit function, just before the setMessage line after a successful upload
-      if (filePublicURL) {
-        // Generate tags for the uploaded file
-        try{
-        const tags = await generateTags(filePublicURL);
-        if (tags) {
-          console.log('Generated tags:', tags);
+      // Generate tags for the uploaded file
+      // need to insert tags into uploads_tags table (many-to-many relation)
+      selectedTags.forEach(async (tagId) => {
+          const { error: tagError } = await supabase
+            .from("uploads_tags")
+            .insert([
+              {
+                upload_id: uploadData.id,
+                tag_id: parseInt(tagId),
+              },
+            ]);
+
+          if (tagError) throw tagError;
         }
-      }catch (error) {
-        console.error("Error generating tags:", error);
-        setMessage("Error updating file. Please try again.");}
-    }
+      );
 
       setMessage("File uploaded successfully!");
       setFileURL(filePublicURL);
@@ -267,9 +318,7 @@ function FileUpload() {
     } catch (error) {
       console.error("Error uploading file:", error);
       // delete file from storage if upload fails
-      await supabase.storage
-        .from("Course Syllabuses")
-        .remove([filePath]);
+      await supabase.storage.from("Course Syllabuses").remove([filePath]);
       setMessage("Error uploading file. Please try again.");
     } finally {
       setUploading(false);
@@ -290,7 +339,11 @@ function FileUpload() {
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Course Subject</Form.Label>
-          <Form.Select value={courseSubject} onChange={(e) => setCourseSubject(e.target.value)} required>
+          <Form.Select
+            value={courseSubject}
+            onChange={(e) => setCourseSubject(e.target.value)}
+            required
+          >
             <option value="">Select a subject</option>
             {courseSubjects.map((subject) => (
               <option key={subject} value={subject}>
@@ -301,10 +354,17 @@ function FileUpload() {
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Course Number</Form.Label>
-          <Form.Select value={courseId} onChange={(e) => {
-            setCourseNumber(courseNumbers[e.target.value as unknown as number].toString());
-            setCourseId(e.target.value);
-          }} required disabled={!courseSubject}>
+          <Form.Select
+            value={courseId}
+            onChange={(e) => {
+              setCourseNumber(
+                courseNumbers[e.target.value as unknown as number].toString()
+              );
+              setCourseId(e.target.value);
+            }}
+            required
+            disabled={!courseSubject}
+          >
             <option value="">Select a number</option>
             {Object.entries(courseNumbers).map(([id, course_number]) => (
               <option key={id} value={id}>
@@ -313,7 +373,9 @@ function FileUpload() {
             ))}
           </Form.Select>
         </Form.Group>
-        <Alert variant={courseSubject && courseNumber ? "success" : "secondary"}>
+        <Alert
+          variant={courseSubject && courseNumber ? "success" : "secondary"}
+        >
           Selected Course: {courseSubject} {courseNumber} - {courseName}
         </Alert>
         <Form.Group className="mb-3">
@@ -327,7 +389,11 @@ function FileUpload() {
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Semester Season</Form.Label>
-          <Form.Select value={semesterSeason} onChange={(e) => setSemesterSeason(e.target.value)} required>
+          <Form.Select
+            value={semesterSeason}
+            onChange={(e) => setSemesterSeason(e.target.value)}
+            required
+          >
             <option value="">Select a season</option>
             <option value="Spring">Spring</option>
             <option value="Summer">Summer</option>
@@ -344,17 +410,54 @@ function FileUpload() {
               required
             />
             <Form.Text className="text-muted">
-              Note: Special characters in filenames will be replaced with underscores.
+              Note: Special characters in filenames will be replaced with
+              underscores.
             </Form.Text>
           </Form.Group>
         )}
-        <Button variant="primary" type="submit" disabled={uploading}>
-          {uploading ? (
-            <Spinner as="span" animation="border" size="sm" />
-          ) : (
-            "Submit"
-          )}
-        </Button>
+        <Form.Group className="mb-3">
+          <Form.Label>Tags</Form.Label>
+          <Form.Select
+            multiple
+            value={selectedTags}
+            onChange={(e) =>
+              setSelectedTags(
+                Array.from(e.target.selectedOptions, (option) => option.value)
+              )
+            }
+          >
+            <option value="">Select Tags</option>
+            {tagList.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+        <Col md={2}>
+          <Row className="mb-3">
+            <Button
+              variant="secondary"
+              onClick={generateTags}
+              disabled={generatingTags}
+            >
+              {generatingTags ? (
+                <Spinner as="span" animation="border" size="sm" />
+              ) : (
+                "Generate Tags"
+              )}
+            </Button>
+          </Row>
+          <Row>
+            <Button variant="primary" type="submit" disabled={uploading}>
+              {uploading ? (
+                <Spinner as="span" animation="border" size="sm" />
+              ) : (
+                "Submit"
+              )}
+            </Button>
+          </Row>
+        </Col>
       </Form>
       {fileURL && (
         <Alert variant="success" className="mt-3">
