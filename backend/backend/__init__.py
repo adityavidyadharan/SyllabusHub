@@ -25,7 +25,7 @@ requests_cache.install_cache('canvas_cache', backend=backend, expire_after=17280
 from backend.courses import courses
 from backend.firebase import initialize_firebase
 from backend.users import users
-from backend.tag_api import tags  # Make sure this import works
+from backend.tag_api import tags  
 from backend.canvas import canvas
 from backend.upload import upload
 
@@ -48,7 +48,7 @@ def health():
 initialize_firebase()
 app.register_blueprint(users, url_prefix='/users')
 app.register_blueprint(courses, url_prefix='/courses')
-app.register_blueprint(tags, url_prefix='/tags')  # This registers the tags blueprint
+app.register_blueprint(tags, url_prefix='/tags')  
 app.register_blueprint(canvas, url_prefix='/canvas')
 app.register_blueprint(upload, url_prefix='/upload')
 

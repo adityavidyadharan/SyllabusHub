@@ -23,13 +23,11 @@ from pdfminer.high_level import extract_text
 import nltk
 import PyPDF2
 from typing import Dict, Any
-# Import the SyllabusTagger class from your existing file
+# Import the SyllabusTagger class from nlpautotagging.py
 from .nlpautotagging import SyllabusTagger
 
-# Create a blueprint instead of an app
 tags = Blueprint('tags', __name__)
 
-# Enable CORS for this blueprint
 CORS(tags, resources={r"/*": {"origins": "*"}})
 
 nltk.download('punkt')

@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_cors import CORS
 from backend.supabase import supabase
 from canvasapi import Canvas
 from datetime import datetime
@@ -8,6 +9,7 @@ import re
 import json
 
 canvas = Blueprint('canvas', __name__)
+CORS(canvas, resources={r"/*": {"origins": "*"}})
 
 API_URL = "https://gatech.instructure.com"
 with open("backend/config/CanvasAPIKey.json") as f:

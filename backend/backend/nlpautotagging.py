@@ -29,11 +29,7 @@ from pdfminer.high_level import extract_text
 print("Ensuring all NLTK resources are available...")
 nltk.download('punkt')
 
-# Modify the sent_tokenize function to avoid the punkt_tab issue
 def safe_sent_tokenize(text):
-    """
-    A safer version of sent_tokenize that doesn't rely on punkt_tab
-    """
     # Simple sentence tokenization based on common sentence delimiters
     sentences = []
     current_sentence = ""
@@ -51,9 +47,6 @@ def safe_sent_tokenize(text):
     
     return sentences
 
-# Make sure to install dependencies:
-# pip install nltk spacy PyPDF2 streamlit pdfminer.six
-# python -m spacy download en_core_web_sm
 
 class SyllabusTagger:
     def __init__(self):
@@ -63,14 +56,14 @@ class SyllabusTagger:
         except OSError:
             print("Downloading missing spaCy model: en_core_web_sm...")
             subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-            spacy.load("en_core_web_sm")  # Load after installation
+            spacy.load("en_core_web_sm")  
         try:
             self.nlp = spacy.load("en_core_web_sm")
         except:
             print("Please install spaCy models with: python -m spacy download en_core_web_sm")
             raise
             
-        # Keywords and phrases for each tag category - updated attendance keywords
+        # Keywords and phrases for each tag category
         self.keywords = {
             "project_heavy": [
                 "project", "projects", "group project", "individual project", "final project",
@@ -126,11 +119,10 @@ class SyllabusTagger:
     def extract_grade_distribution(self, text: str) -> Dict[str, float]:
         """
         Extracts the grade distribution from syllabus text.
-        Enhanced to recognize more grade formats common in syllabi.
         """
         grade_dict = {}
         
-        # Look for more flexible grade patterns
+        #For flexible grade patterns
         grade_patterns = [
             # Standard percentage pattern
             r"(?i)(project|projects|final project|team project).*?(\d+)%",
@@ -139,14 +131,14 @@ class SyllabusTagger:
             r"(?i)(quiz|quizzes).*?(\d+)%",
             r"(?i)(participation|attendance).*?(\d+)%",
             
-            # Points-based patterns
+            #Points-based patterns
             r"(?i)(project|projects|final project|team project).*?(\d+)\s*(pts|points)",
             r"(?i)(exam|exams|midterm|final exam).*?(\d+)\s*(pts|points)",
             r"(?i)(assignment|assignments|homework).*?(\d+)\s*(pts|points)",
             r"(?i)(quiz|quizzes).*?(\d+)\s*(pts|points)",
             r"(?i)(participation|attendance).*?(\d+)\s*(pts|points)",
             
-            # Table format (common in syllabi like yours)
+            #Table format
             r"(?i)(project|projects|final project|team project)\s*(\d+)",
             r"(?i)(exam|exams|midterm|final exam)\s*(\d+)",
             r"(?i)(assignment|assignments|homework)\s*(\d+)",
@@ -154,7 +146,6 @@ class SyllabusTagger:
             r"(?i)(participation|attendance)\s*(\d+)"
         ]
         
-        # Look for total points in the grading section to calculate percentages if needed
         total_points_match = re.search(r"(?i)total.*?(\d+)", text)
         total_points = 100  # Default to 100 if not specified
         if total_points_match:
@@ -169,7 +160,7 @@ class SyllabusTagger:
             for match in matches:
                 component = match[0].lower()
                 try:
-                    # Try to convert the value to float
+                    #Convert the value to float
                     percentage = float(match[1])
                     
                     # If the grading is points-based, convert to percentage
@@ -205,7 +196,6 @@ class SyllabusTagger:
     def analyze_attendance_policy(self, text: str) -> float:
         """
         Analyzes the attendance policy and returns a strength score from 0 to 1.
-        Improved to catch more attendance-related phrases and grading elements.
         """
         # Use our safe version of sentence tokenizer to avoid punkt_tab issues
         attendance_sentences = []
@@ -390,12 +380,12 @@ class SyllabusTagger:
         """
         Provides detailed reasoning for why each tag was assigned.
         """
-        # Clean up the text
+
         syllabus_text = syllabus_text.replace('\t', ' ')
         
         reasoning = {}
         
-        # Extract grade distribution
+        #Extract grade distribution
         grade_distribution = self.extract_grade_distribution(syllabus_text)
         
         # Analyze attendance policy
