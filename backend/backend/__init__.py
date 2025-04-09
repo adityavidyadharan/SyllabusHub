@@ -5,6 +5,7 @@ import requests_cache
 import requests
 from loguru import logger
 import redis
+from backend.recommendations_api import rec 
 
 def filter_canvas_request(response: requests.Response) -> bool:
     return 'gatech.instructure.com' in response.url
@@ -28,6 +29,7 @@ from backend.users import users
 from backend.tag_api import tags  
 from backend.canvas import canvas
 from backend.upload import upload
+from backend.recommendations_api import rec
 
 app = Flask(__name__)
 CORS(app)
@@ -44,6 +46,18 @@ def after_request(response):
 @app.route('/health', methods=['GET'])
 def health():
     return 'Healthy'
+# Add this at the top with your other routes
+@app.route('/debug', methods=['GET'])
+def debug():
+    # Print all registered rules for debugging
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            "endpoint": rule.endpoint,
+            "methods": list(rule.methods),
+            "rule": str(rule)
+        })
+    return jsonify({"routes": routes})
 
 initialize_firebase()
 app.register_blueprint(users, url_prefix='/users')
@@ -51,6 +65,7 @@ app.register_blueprint(courses, url_prefix='/courses')
 app.register_blueprint(tags, url_prefix='/tags')  
 app.register_blueprint(canvas, url_prefix='/canvas')
 app.register_blueprint(upload, url_prefix='/upload')
+app.register_blueprint(rec, url_prefix='/rec')  
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001, debug=True)

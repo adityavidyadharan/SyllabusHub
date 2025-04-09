@@ -35,9 +35,19 @@ function Navbar() {
       <Container>
         <BNavbar.Toggle aria-controls="basic-navbar-nav" />
         <BNavbar.Collapse id="basic-navbar-nav">
+          
+          {/*<Nav className="me-auto">
+            <Nav.Link as={Link} to="/">
+              Home
+            </Nav.Link>
+          </Nav>*/}
+          
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/">
               Home
+            </Nav.Link>
+            <Nav.Link as={Link} to="/recommendations">
+              Recommendations
             </Nav.Link>
           </Nav>
           {!loggedIn && (
